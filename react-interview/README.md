@@ -180,26 +180,52 @@ react-interview/
 
 ## CI/CD
 
-*Files to be added:*
-- GitHub Actions
-- GitLab CI
-- Deployment pipelines
-- Testing in CI
+### 01-github-actions-pipeline.yml
+**Topic:** Comprehensive CI/CD pipeline
+
+**Key Features:**
+- Multi-stage pipeline (lint, test, build, deploy)
+- Security scanning
+- Docker image building
+- E2E testing
+- Performance monitoring
+- Staging and production deployments
+
+### 02-dockerfile-multi-stage.ts
+**Topic:** Optimized Docker builds
+
+**Key Features:**
+- Multi-stage Dockerfile
+- Nginx configuration
+- Health checks
+- Security headers
+- Caching strategies
 
 ## Debugging
 
-*Files to be added:**
-- React DevTools
+### 01-react-debugging-techniques.tsx
+**Topic:** Comprehensive React debugging
+
+**Key Features:**
+- React DevTools integration
 - Performance profiling
 - Memory leak detection
-- Error tracking
+- why-did-you-update hook
+- Network request debugging
+- Production debugging utilities
 
 ## Migration
 
-*Files to be added:**
-- Class to functional components
-- JavaScript to TypeScript
-- Legacy to modern patterns
+### 01-class-to-functional-migration.tsx
+**Topic:** Migration strategies
+
+**Key Features:**
+- Class to functional component conversion
+- Lifecycle method mapping
+- State migration patterns
+- Custom hook extraction
+- TypeScript migration
+- Step-by-step checklist
 
 ## Usage
 
