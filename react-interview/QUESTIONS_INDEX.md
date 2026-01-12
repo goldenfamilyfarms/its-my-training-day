@@ -197,6 +197,46 @@ This document maps all questions from the source markdown file to their implemen
 - Type safety
 - Documentation
 
+### ✅ CI/CD Pipeline
+**File:** `cicd/01-github-actions-pipeline.yml`
+**Topic:** Comprehensive CI/CD setup
+**Key Concepts:**
+- Multi-stage pipeline
+- Security scanning
+- Docker builds
+- E2E testing
+- Deployment automation
+
+### ✅ Debugging Techniques
+**File:** `debugging/01-react-debugging-techniques.tsx`
+**Topic:** React debugging and profiling
+**Key Concepts:**
+- React DevTools integration
+- Performance profiling
+- Memory leak detection
+- Network debugging
+- Production debugging
+
+### ✅ Styling Approaches
+**File:** `styling/01-css-in-js-vs-traditional.tsx`
+**Topic:** CSS-in-JS vs traditional styling
+**Key Concepts:**
+- Styled Components
+- Tailwind CSS
+- CSS Modules
+- CSS Variables
+- Responsive design hooks
+
+### ✅ Migration Strategies
+**File:** `migration/01-class-to-functional-migration.tsx`
+**Topic:** Class to functional component migration
+**Key Concepts:**
+- Lifecycle method conversion
+- State migration
+- Custom hook extraction
+- TypeScript migration
+- Migration checklist
+
 ## Additional Questions (Second Section)
 
 ### ⏳ Question 1: Component-Based Architecture

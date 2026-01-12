@@ -18,9 +18,9 @@ react-interview/
 ├── build-optimization/    # Bundle size and build optimization
 ├── styling/               # CSS-in-JS and styling approaches
 ├── component-library/     # Component library architecture
-├── cicd/                  # CI/CD pipeline setup
-├── debugging/             # Debugging techniques
-└── migration/             # Migration strategies
+├── cicd/                  # CI/CD pipeline setup ✅
+├── debugging/             # Debugging techniques ✅
+└── migration/             # Migration strategies ✅
 ```
 
 ## Core Concepts
@@ -152,11 +152,15 @@ react-interview/
 
 ## Build Optimization
 
-*Files to be added:*
-- Code splitting
-- Bundle analysis
-- Tree shaking
-- Lazy loading
+### 01-bundle-size-optimization.ts
+**Topic:** Bundle size and performance optimization
+
+**Key Features:**
+- Code splitting strategies
+- Tree shaking configuration
+- Lazy loading patterns
+- Bundle analysis setup
+- Resource hints and preloading
 
 ## Styling
 
