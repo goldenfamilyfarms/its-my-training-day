@@ -17,11 +17,11 @@ import React, { useReducer, useEffect, useRef, useMemo, useCallback } from 'reac
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 // Types
-type Framework = 'SOC2' | 'FEDRAMP' | 'ISO27001';
+type FrameworkType = 'SOC2' | 'FEDRAMP' | 'ISO27001';
 
 interface Framework {
   id: string;
-  name: Framework;
+  name: FrameworkType;
   description: string;
 }
 
