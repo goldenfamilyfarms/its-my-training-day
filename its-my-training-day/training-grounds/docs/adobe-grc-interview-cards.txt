@@ -1,0 +1,670 @@
+#separator:tab
+#html:true
+#tags column:3
+
+# React Hooks - useState
+
+{{c1::useState}} is a React hook that manages {{c2::component-level state}} and triggers {{c3::re-renders}} when the state value changes.<br><br><b>Usage:</b> <code>const [state, setState] = useState(initialValue)</code><br><b>Reference:</b> REACT_HOOKS_GUIDE.md, interview-questions/07-react-code-splitting.tsx:181
+
+{{c1::useState}} returns a {{c2::tuple}} containing the {{c3::current state value}} and a {{c4::function to update it}}.<br><br><b>Example:</b> <code>const [count, setCount] = useState(0)</code><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+When using {{c1::useState}} with {{c2::objects or arrays}}, you must create a {{c3::new reference}} to trigger a re-render, as React uses {{c4::reference equality}} for comparison.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx:68
+
+{{c1::Functional updates}} with useState use the pattern: <code>setState(prev => newValue)</code> to ensure you're working with the {{c2::latest state value}} and avoid {{c3::stale closures}}.<br><br><b>Reference:</b> react-interview/core-concepts/01-real-time-telemetry-dashboard.tsx:27
+
+Using {{c1::Set}} instead of Array for selectedIds provides {{c2::O(1) lookup time}} vs {{c3::O(n)}} for arrays, which is important when checking selection state for {{c4::thousands of items}}.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx:68
+
+# React Hooks - useEffect
+
+{{c1::useEffect}} is used to perform {{c2::side effects}} in functional components, such as {{c3::data fetching}}, {{c4::subscriptions}}, or {{c5::DOM manipulation}}.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+The {{c1::dependency array}} in useEffect determines when the effect runs: {{c2::empty array}} runs once on mount, {{c3::no array}} runs on every render, and {{c4::array with values}} runs when those values change.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+{{c1::Cleanup functions}} in useEffect are returned from the effect and run when the component {{c2::unmounts}} or before the effect runs again, preventing {{c3::memory leaks}}.<br><br><b>Example:</b> <code>return () => clearInterval(id)</code><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+{{c1::useEffect}} with an empty dependency array <code>[]</code> runs {{c2::once after the initial render}}, equivalent to {{c3::componentDidMount}} in class components.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+When useEffect depends on {{c1::props or state}}, you must include them in the {{c2::dependency array}} to avoid {{c3::stale closures}} and ensure the effect uses {{c4::current values}}.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+# React Hooks - useReducer
+
+{{c1::useReducer}} is preferred over useState when you have {{c2::complex state logic}} involving {{c3::multiple sub-values}} or when the next state depends on the {{c4::previous state}}.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md, platform-engineering/react/02-compliance-workflow-wizard.tsx:408
+
+{{c1::useReducer}} takes a {{c2::reducer function}} and an {{c3::initial state}}, returning the {{c4::current state}} and a {{c5::dispatch function}}.<br><br><b>Pattern:</b> <code>const [state, dispatch] = useReducer(reducer, initialState)</code>
+
+The {{c1::reducer function}} in useReducer is a {{c2::pure function}} that takes {{c3::(state, action)}} and returns the {{c4::new state}}, following the pattern: <code>(state, action) => newState</code>.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+{{c1::useReducer}} is ideal for managing {{c2::state machines}} and {{c3::workflow orchestration}}, as it centralizes {{c4::state transition logic}} in the reducer function.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx:408
+
+When using useReducer with {{c1::nested state}}, you should use {{c2::immutable update patterns}} like the spread operator to create {{c3::new object references}} and trigger re-renders.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# React Hooks - useMemo
+
+{{c1::useMemo}} memoizes the result of a {{c2::computation}}, only recalculating when {{c3::dependencies change}}, preventing {{c4::unnecessary recalculations}} on every render.<br><br><b>Pattern:</b> <code>const memoizedValue = useMemo(() => computeExpensiveValue(a, b), [a, b])</code><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+{{c1::useMemo}} should be used for {{c2::expensive calculations}} that depend on {{c3::props or state}}, not for {{c4::every computation}}, as memoization itself has overhead.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+The {{c1::dependency array}} in useMemo works like useEffect: {{c2::empty array}} computes once, {{c3::no array}} computes every render, and {{c4::array with values}} computes when values change.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+{{c1::useMemo}} can be used to create {{c2::memoized selectors}} that transform data, preventing {{c3::unnecessary recalculations}} when the source data hasn't changed.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+# React Hooks - useCallback
+
+{{c1::useCallback}} memoizes a {{c2::function definition}}, returning the {{c3::same function reference}} unless dependencies change, preventing {{c4::unnecessary re-renders}} of child components.<br><br><b>Pattern:</b> <code>const memoizedCallback = useCallback(() => { doSomething(a, b) }, [a, b])</code><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+{{c1::useCallback}} is useful when passing {{c2::functions as props}} to {{c3::memoized child components}}, as it prevents the child from re-rendering when the {{c4::function reference changes}}.<br><br><b>Reference:</b> interview-questions/05-react-context-performance.tsx
+
+Without {{c1::useCallback}}, a function defined in a component is {{c2::recreated on every render}}, causing {{c3::memoized children}} to re-render even if their props haven't changed.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+{{c1::useCallback}} should be used with {{c2::React.memo}} to optimize {{c3::child component re-renders}}, but only when the child component is {{c4::expensive to render}}.<br><br><b>Reference:</b> interview-questions/05-react-context-performance.tsx
+
+# React Hooks - useRef
+
+{{c1::useRef}} returns a {{c2::mutable ref object}} that persists across renders and doesn't trigger {{c3::re-renders}} when its {{c4::current property}} changes.<br><br><b>Pattern:</b> <code>const ref = useRef(initialValue)</code><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+{{c1::useRef}} is commonly used to store {{c2::DOM element references}}, {{c3::previous values}}, {{c4::interval IDs}}, or any {{c5::mutable value}} that doesn't need to trigger re-renders.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+Unlike {{c1::useState}}, updating {{c2::ref.current}} does {{c3::not trigger a re-render}}, making it ideal for storing {{c4::values that don't affect rendering}}.<br><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+{{c1::useRef}} can be used to access {{c2::previous props or state}} by storing them in an effect, enabling patterns like {{c3::detecting prop changes}} or {{c4::comparing previous values}}.<br><br><b>Reference:</b> REACT_HOOKS_GUIDE.md
+
+# React Hooks - useTransition
+
+{{c1::useTransition}} is a React 18 hook that marks {{c2::state updates as non-urgent}}, allowing React to {{c3::keep the UI responsive}} during expensive updates.<br><br><b>Pattern:</b> <code>const [isPending, startTransition] = useTransition()</code><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+{{c1::startTransition}} wraps state updates that are {{c2::not urgent}}, allowing React to {{c3::interrupt the update}} if more urgent updates come in, improving {{c4::perceived performance}}.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+{{c1::useTransition}} returns {{c2::isPending}}, a boolean indicating whether there's a {{c3::pending transition}}, which can be used to show {{c4::loading indicators}} during non-urgent updates.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+# React Hooks - useDeferredValue
+
+{{c1::useDeferredValue}} defers updating a {{c2::value}} until React has time for {{c3::non-urgent work}}, useful for {{c4::expensive filtering}} or {{c5::search operations}}.<br><br><b>Pattern:</b> <code>const deferredValue = useDeferredValue(value)</code><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+{{c1::useDeferredValue}} allows you to {{c2::keep the previous value}} visible while the new value is being computed, providing a {{c3::smoother user experience}} during expensive operations.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+# React Hooks - Custom Hooks
+
+{{c1::Custom hooks}} are functions that start with {{c2::"use"}} and can call other hooks, allowing you to {{c3::extract component logic}} into {{c4::reusable functions}}.<br><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+Custom hooks enable {{c1::logic reuse}} across components, following the {{c2::DRY principle}} and making components more {{c3::focused and readable}}.<br><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+The {{c1::useComplianceData}} custom hook demonstrates {{c2::request deduplication}}, {{c3::caching}}, and {{c4::state management}} with useReducer for complex data fetching scenarios.<br><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+{{c1::useOptimisticUpdate}} is a custom hook pattern that {{c2::immediately updates the UI}} before the server confirms, then {{c3::rolls back}} if the update fails, providing {{c4::instant feedback}}.<br><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+{{c1::usePolling}} is a custom hook that {{c2::periodically fetches data}} at a specified interval, with proper {{c3::cleanup}} to prevent memory leaks when the component unmounts.<br><br><b>Pattern:</b> <code>usePolling(fetchData, interval)</code><br><b>Reference:</b> interview-questions/03-react-custom-hooks-advanced.tsx
+
+# React Patterns - Server-Sent Events
+
+{{c1::Server-Sent Events (SSE)}} provide {{c2::one-way communication}} from server to client over HTTP, ideal for {{c3::real-time updates}} like compliance dashboard data.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+SSE uses the {{c1::EventSource API}} in the browser, which automatically {{c2::reconnects}} on connection loss and handles {{c3::message parsing}} automatically.<br><br><b>Pattern:</b> <code>const eventSource = new EventSource('/api/stream')</code><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+Unlike WebSockets, {{c1::SSE}} is {{c2::unidirectional}} (server to client only) and works over {{c3::standard HTTP}}, making it simpler but less flexible than WebSockets.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+# React Patterns - Virtualization
+
+{{c1::Virtualization}} renders only {{c2::visible items}} in a list, dramatically improving performance for {{c3::large datasets}} by reducing DOM nodes and memory usage.<br><br><b>Library:</b> @tanstack/react-virtual<br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+{{c1::useVirtualizer}} from @tanstack/react-virtual calculates which items are {{c2::visible in the viewport}} and only renders those, using {{c3::dynamic sizing}} or {{c4::fixed item heights}}.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+Virtualization is essential when rendering {{c1::thousands of rows}}, as rendering all items would cause {{c2::performance issues}} and {{c3::excessive memory usage}}.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# React Patterns - State Machines
+
+{{c1::State machines}} model component behavior as a {{c2::finite set of states}} and {{c3::transitions}} between them, making complex workflows {{c4::predictable and testable}}.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx:408
+
+State machines are ideal for {{c1::multi-step forms}} and {{c2::workflow orchestration}}, as they make {{c3::state transitions explicit}} and prevent {{c4::invalid states}}.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+The {{c1::workflowReducer}} uses a state machine pattern to manage {{c2::step navigation}}, {{c3::validation}}, and {{c4::data persistence}} in a compliance workflow wizard.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx:408
+
+# React Patterns - Code Splitting
+
+{{c1::Code splitting}} divides your bundle into {{c2::smaller chunks}} that are loaded {{c3::on-demand}}, reducing {{c4::initial load time}} and improving performance.<br><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+{{c1::React.lazy}} enables {{c2::component-level code splitting}} by dynamically importing components, which are then wrapped in {{c3::Suspense}} for loading states.<br><br><b>Pattern:</b> <code>const LazyComponent = React.lazy(() => import('./Component'))</code><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+{{c1::Suspense}} provides a {{c2::fallback UI}} while lazy components are loading, preventing {{c3::blank screens}} and improving {{c4::user experience}}.<br><br><b>Pattern:</b> <code>&lt;Suspense fallback={&lt;Loading /&gt;}&gt;{lazyComponent}&lt;/Suspense&gt;</code><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+{{c1::Route-based code splitting}} splits code at the {{c2::route level}}, loading entire route bundles only when {{c3::users navigate}} to those routes.<br><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+{{c1::Preloading}} lazy components on {{c2::hover or interaction}} can improve {{c3::perceived performance}} by loading code before it's needed.<br><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+# React Patterns - Error Boundaries
+
+{{c1::Error boundaries}} are React components that {{c2::catch JavaScript errors}} in their child component tree, preventing the {{c3::entire app from crashing}}.<br><br><b>Reference:</b> react-interview/error-handling/01-error-boundaries-comprehensive.tsx
+
+Error boundaries use {{c1::componentDidCatch}} or {{c2::static getDerivedStateFromError}} to catch errors and display a {{c3::fallback UI}} instead of crashing.<br><br><b>Reference:</b> react-interview/error-handling/01-error-boundaries-comprehensive.tsx
+
+Error boundaries do {{c1::not catch}} errors in {{c2::event handlers}}, {{c3::async code}}, or {{c4::server-side rendering}}, only errors during {{c5::rendering, lifecycle methods, or constructors}}.<br><br><b>Reference:</b> react-interview/error-handling/01-error-boundaries-comprehensive.tsx
+
+# React Patterns - Context API
+
+{{c1::Context API}} provides a way to {{c2::pass data through the component tree}} without prop drilling, but can cause {{c3::performance issues}} if not optimized.<br><br><b>Reference:</b> interview-questions/05-react-context-performance.tsx
+
+{{c1::Context splitting}} by {{c2::update frequency}} prevents unnecessary re-renders, as components only subscribe to {{c3::contexts that change frequently}}.<br><br><b>Reference:</b> interview-questions/05-react-context-performance.tsx
+
+The {{c1::selector pattern}} in Context API uses {{c2::useMemo}} to create fine-grained subscriptions, preventing re-renders when {{c3::unrelated context values change}}.<br><br><b>Reference:</b> interview-questions/05-react-context-performance.tsx
+
+# Node.js - Streams
+
+{{c1::Node.js streams}} are objects that let you read or write data {{c2::incrementally}} without loading everything into memory, essential for {{c3::processing large files}}.<br><br><b>Reference:</b> interview-questions/02-nodejs-stream-processing.ts
+
+{{c1::Readable streams}} represent a {{c2::source of data}} that can be read, like files or HTTP requests, implementing the {{c3::read()}} method.<br><br><b>Reference:</b> interview-questions/02-nodejs-stream-processing.ts
+
+{{c1::Writable streams}} represent a {{c2::destination for data}} that can be written to, like files or HTTP responses, implementing the {{c3::write()}} method.<br><br><b>Reference:</b> interview-questions/02-nodejs-stream-processing.ts
+
+{{c1::Transform streams}} are {{c2::duplex streams}} that modify data as it passes through, useful for {{c3::parsing}}, {{c4::filtering}}, or {{c5::transforming}} data.<br><br><b>Reference:</b> interview-questions/02-nodejs-stream-processing.ts
+
+{{c1::Backpressure}} occurs when data is written {{c2::faster than it can be consumed}}, and streams handle this by {{c3::pausing the readable stream}} until the writable stream is ready.<br><br><b>Reference:</b> interview-questions/02-nodejs-stream-processing.ts
+
+The {{c1::pipeline()}} function connects multiple streams together, handling {{c2::errors}} and {{c3::cleanup}} automatically, and is preferred over {{c4::pipe()}} for error handling.<br><br><b>Pattern:</b> <code>pipeline(readable, transform, writable, callback)</code><br><b>Reference:</b> interview-questions/02-nodejs-stream-processing.ts
+
+# Node.js - Worker Threads
+
+{{c1::Worker threads}} enable {{c2::CPU-intensive tasks}} to run in {{c3::separate threads}}, preventing them from {{c4::blocking the main event loop}}.<br><br><b>Reference:</b> interview-questions/04-nodejs-worker-threads.ts
+
+{{c1::Worker threads}} are ideal for {{c2::CPU-bound operations}} like {{c3::data processing}}, {{c4::image manipulation}}, or {{c5::complex calculations}}, not for {{c6::I/O operations}}.<br><br><b>Reference:</b> interview-questions/04-nodejs-worker-threads.ts
+
+A {{c1::worker pool}} manages multiple worker threads, {{c2::queuing tasks}} and {{c3::distributing work}} across available workers for {{c4::parallel processing}}.<br><br><b>Reference:</b> interview-questions/04-nodejs-worker-threads.ts
+
+{{c1::Message passing}} between the main thread and workers uses {{c2::postMessage()}} and {{c3::message events}}, as workers have {{c4::isolated memory}} and cannot share objects directly.<br><br><b>Reference:</b> interview-questions/04-nodejs-worker-threads.ts
+
+# Node.js - Database Transactions
+
+{{c1::Database transactions}} ensure {{c2::atomicity}}, {{c3::consistency}}, {{c4::isolation}}, and {{c5::durability}} (ACID properties) for database operations.<br><br><b>Reference:</b> interview-questions/06-nodejs-database-transactions.ts
+
+{{c1::Transaction isolation levels}} (READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE) control how transactions {{c2::interact with each other}} and prevent {{c3::concurrency issues}}.<br><br><b>Reference:</b> interview-questions/06-nodejs-database-transactions.ts
+
+{{c1::Optimistic locking}} uses {{c2::version numbers}} or {{c3::timestamps}} to detect concurrent modifications, throwing an error if the data was {{c4::modified by another transaction}}.<br><br><b>Reference:</b> interview-questions/06-nodejs-database-transactions.ts
+
+{{c1::Rollback}} in transactions {{c2::undoes all changes}} made within the transaction if an error occurs, ensuring {{c3::data consistency}}.<br><br><b>Reference:</b> interview-questions/06-nodejs-database-transactions.ts
+
+# Node.js - Rate Limiting
+
+{{c1::Token bucket algorithm}} maintains a {{c2::bucket of tokens}} that are {{c3::refilled at a fixed rate}}, allowing {{c4::burst traffic}} up to the bucket size.<br><br><b>Reference:</b> interview-questions/08-nodejs-api-rate-limiting.ts, platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+{{c1::Sliding window algorithm}} tracks requests in {{c2::overlapping time windows}}, providing {{c3::smoother rate limiting}} than fixed window but requiring {{c4::more memory}}.<br><br><b>Reference:</b> interview-questions/08-nodejs-api-rate-limiting.ts
+
+{{c1::Fixed window algorithm}} divides time into {{c2::fixed intervals}} and limits requests per interval, simple but can allow {{c3::burst traffic}} at window boundaries.<br><br><b>Reference:</b> interview-questions/08-nodejs-api-rate-limiting.ts
+
+{{c1::Multi-tier rate limiting}} applies different limits for {{c2::different user tiers}} (free, premium, enterprise), enabling {{c3::flexible pricing models}}.<br><br><b>Reference:</b> interview-questions/08-nodejs-api-rate-limiting.ts
+
+# Node.js - Circuit Breakers
+
+{{c1::Circuit breakers}} protect systems from {{c2::cascading failures}} by {{c3::stopping requests}} to a failing service and {{c4::allowing recovery attempts}} after a timeout.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts, compliance-grc/automation/01-remediation-workflow.ts
+
+Circuit breakers have three states: {{c1::CLOSED}} (normal operation), {{c2::OPEN}} (failing, requests blocked), and {{c3::HALF_OPEN}} (testing recovery).<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+The circuit breaker {{c1::opens}} after a {{c2::threshold of failures}}, blocking requests until a {{c3::recovery timeout}} elapses, then transitions to {{c4::HALF_OPEN}} to test recovery.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+# Node.js - Event-Driven Architecture
+
+{{c1::Event sourcing}} stores all changes as a {{c2::sequence of events}} rather than just current state, enabling {{c3::complete audit trails}} and {{c4::time travel}}.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+{{c1::At-least-once delivery}} ensures events are {{c2::delivered at least once}}, requiring {{c3::idempotent handlers}} to handle {{c4::duplicate events}} safely.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+{{c1::Partitioned ordering}} ensures events for the same {{c2::partition key}} (e.g., controlId) are processed {{c3::in order}}, while events for different partitions can be {{c4::processed in parallel}}.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+{{c1::Dead letter queues (DLQ)}} store events that {{c2::failed to process}} after retries, enabling {{c3::manual review}} and {{c4::preventing event loss}}.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+{{c1::Idempotency}} ensures that {{c2::processing the same event multiple times}} produces the {{c3::same result}}, essential for {{c4::at-least-once delivery}} guarantees.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+# Node.js - Adapter Pattern
+
+The {{c1::Adapter pattern}} allows {{c2::incompatible interfaces}} to work together by {{c3::wrapping one interface}} with another, enabling {{c4::multi-cloud abstraction}}.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts, compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts
+
+In multi-cloud scenarios, the adapter pattern {{c1::normalizes}} different cloud provider APIs into a {{c2::unified interface}}, allowing the application to {{c3::work with any provider}}.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts
+
+# TypeScript - Discriminated Unions
+
+{{c1::Discriminated unions}} use a {{c2::common property}} (discriminant) to narrow types, enabling {{c3::type-safe handling}} of different variants.<br><br><b>Pattern:</b> <code>type Result = { type: 'success', data: T } | { type: 'error', message: string }</code><br><b>Reference:</b> platform-engineering/fullstack/01-typescript-compliance-types.ts
+
+{{c1::Type narrowing}} with discriminated unions allows TypeScript to {{c2::infer the correct type}} based on the discriminant, providing {{c3::type safety}} without type assertions.<br><br><b>Reference:</b> platform-engineering/fullstack/01-typescript-compliance-types.ts
+
+# TypeScript - Branded Types
+
+{{c1::Branded types}} create {{c2::distinct types}} from the same underlying type, preventing {{c3::accidental mixing}} of semantically different values.<br><br><b>Pattern:</b> <code>type UserId = string & { __brand: 'UserId' }</code><br><b>Reference:</b> platform-engineering/fullstack/01-typescript-compliance-types.ts
+
+{{c1::Branded types}} are useful for {{c2::validated data}} like IDs or emails, ensuring type safety at {{c3::compile time}} without runtime overhead.<br><br><b>Reference:</b> platform-engineering/fullstack/01-typescript-compliance-types.ts
+
+# TypeScript - Generic Types
+
+{{c1::Generic types}} enable {{c2::reusable code}} that works with {{c3::multiple types}} while maintaining {{c4::type safety}}.<br><br><b>Pattern:</b> <code>function identity&lt;T&gt;(arg: T): T { return arg }</code>
+
+{{c1::Generic constraints}} use {{c2::extends}} to limit which types can be used, ensuring the generic type has {{c3::required properties}}.<br><br><b>Pattern:</b> <code>function logLength&lt;T extends { length: number }&gt;(arg: T)</code>
+
+# GRC - Framework Overlap
+
+{{c1::SOC 2}}, {{c2::ISO 27001}}, {{c3::FedRAMP}}, and {{c4::PCI-DSS}} are compliance frameworks that have {{c5::overlapping controls}}, requiring {{c6::unified mapping}}.<br><br><b>Reference:</b> compliance-grc/fundamentals/01-framework-overlap-control-mapping.ts
+
+{{c1::Control mapping}} identifies {{c2::common controls}} across frameworks, enabling {{c3::evidence reuse}} and {{c4::reduced duplication}} in compliance efforts.<br><br><b>Reference:</b> compliance-grc/fundamentals/01-framework-overlap-control-mapping.ts
+
+# GRC - Policy-as-Code
+
+{{c1::Policy-as-code}} defines compliance policies as {{c2::code}} (often YAML or JSON), enabling {{c3::version control}}, {{c4::automated testing}}, and {{c5::CI/CD integration}}.<br><br><b>Reference:</b> compliance-grc/architecture/01-policy-as-code-framework.ts
+
+{{c1::Policy DSL}} (Domain-Specific Language) provides a {{c2::declarative syntax}} for defining compliance rules, which are then {{c3::compiled}} and {{c4::evaluated}} by a policy engine.<br><br><b>Reference:</b> compliance-grc/architecture/01-policy-as-code-framework.ts
+
+# GRC - Evidence Collection
+
+{{c1::Evidence collection}} gathers {{c2::proof of compliance}} from cloud providers, requiring {{c3::cryptographic hashing}} for {{c4::integrity verification}}.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+{{c1::Multi-cloud evidence collection}} uses the {{c2::adapter pattern}} to normalize different cloud provider APIs into a {{c3::unified interface}} for evidence gathering.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+# GRC - Remediation Workflows
+
+{{c1::Remediation workflows}} automate {{c2::fixing compliance violations}} with {{c3::risk-based graduated responses}} (Tier 1-3) and {{c4::safety mechanisms}} like dry-run and rollback.<br><br><b>Reference:</b> compliance-grc/automation/01-remediation-workflow.ts
+
+{{c1::Risk-based remediation}} applies {{c2::different strategies}} based on violation severity: {{c3::automatic}} for low-risk, {{c4::approval-required}} for high-risk.<br><br><b>Reference:</b> compliance-grc/automation/01-remediation-workflow.ts
+
+# Performance - React Optimization
+
+{{c1::React.memo}} prevents re-renders when {{c2::props haven't changed}}, but only works if props are {{c3::primitive values}} or {{c4::stable references}} (memoized with useCallback/useMemo).<br><br><b>Reference:</b> interview-questions/05-react-context-performance.tsx
+
+{{c1::Batching state updates}} reduces the number of re-renders by {{c2::grouping multiple setState calls}} into a single update, automatic in React 18.<br><br><b>Reference:</b> react-interview/core-concepts/01-real-time-telemetry-dashboard.tsx
+
+{{c1::Web Workers}} can offload {{c2::CPU-intensive tasks}} from the main thread, preventing {{c3::UI blocking}} during heavy computations.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# Performance - Data Processing
+
+{{c1::Event aggregation}} combines multiple events into {{c2::summary metrics}} over time windows, reducing {{c3::storage requirements}} and improving {{c4::query performance}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+{{c1::Time-based rollup}} aggregates events into {{c2::multiple granularities}} (minute, hour, day, month), enabling {{c3::efficient queries}} at different time scales.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+{{c1::Control-level rollup}} aggregates compliance events by {{c2::control and framework}}, providing {{c3::compliance metrics}} at the control level.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+{{c1::Risk-based sampling}} samples events with {{c2::higher probability}} for high-risk events, ensuring {{c3::critical issues are never missed}} while optimizing resource usage.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+{{c1::Deterministic sampling}} uses {{c2::hash-based selection}} to ensure the same events are sampled consistently, enabling {{c3::auditability}} and {{c4::reproducibility}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Testing - React Testing
+
+{{c1::React Testing Library}} focuses on testing {{c2::user behavior}} rather than implementation details, making tests more {{c3::maintainable}} and {{c4::resistant to refactoring}}.<br><br><b>Reference:</b> interview-questions/09-react-testing-strategies.tsx
+
+{{c1::Custom hook testing}} requires {{c2::renderHook}} from React Testing Library to test hooks in {{c3::isolation}} from components.<br><br><b>Reference:</b> interview-questions/09-react-testing-strategies.tsx
+
+{{c1::Async operation testing}} uses {{c2::waitFor}} and {{c3::findBy}} queries to handle asynchronous updates in React components.<br><br><b>Reference:</b> interview-questions/09-react-testing-strategies.tsx
+
+# Architecture - Repository Pattern
+
+The {{c1::Repository pattern}} abstracts {{c2::data access logic}}, providing a {{c3::consistent interface}} for data operations regardless of the underlying storage.<br><br><b>Reference:</b> platform-engineering/fullstack/01-typescript-compliance-types.ts
+
+# Architecture - Event Sourcing
+
+{{c1::Event sourcing}} stores all changes as {{c2::immutable events}}, enabling {{c3::complete audit trails}}, {{c4::time travel}}, and {{c5::point-in-time reconstruction}}.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+{{c1::Projections}} in event sourcing {{c2::transform events}} into {{c3::read-optimized views}}, enabling {{c4::efficient querying}} while maintaining {{c5::event store integrity}}.<br><br><b>Reference:</b> compliance-grc/architecture/02-evidence-data-model.ts
+
+# Architecture - CQRS
+
+{{c1::CQRS}} (Command Query Responsibility Segregation) separates {{c2::read and write operations}}, allowing {{c3::independent optimization}} of each side.<br><br><b>Reference:</b> compliance-grc/architecture/02-evidence-data-model.ts
+
+# React Query
+
+{{c1::React Query}} (TanStack Query) manages {{c2::server state}}, providing {{c3::caching}}, {{c4::background refetching}}, and {{c5::automatic synchronization}}.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+{{c1::useQuery}} from React Query handles {{c2::data fetching}}, {{c3::loading states}}, {{c4::error handling}}, and {{c5::caching}} automatically.<br><br><b>Pattern:</b> <code>const { data, isLoading, error } = useQuery(['key'], fetchFn)</code><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# Zod Validation
+
+{{c1::Zod}} is a TypeScript-first schema validation library that provides {{c2::runtime type checking}} and {{c3::type inference}} from schemas.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+{{c1::Zod schemas}} can be used for {{c2::form validation}}, {{c3::API validation}}, and {{c4::type-safe data parsing}}, with automatic TypeScript type generation.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# WebSocket Patterns
+
+{{c1::WebSockets}} provide {{c2::bidirectional communication}} between client and server, ideal for {{c3::real-time applications}} like collaborative editing.<br><br><b>Reference:</b> react-interview/real-time/01-websocket-custom-hooks.tsx
+
+{{c1::WebSocket custom hooks}} encapsulate {{c2::connection management}}, {{c3::message handling}}, and {{c4::reconnection logic}}, making WebSocket usage {{c5::reusable across components}}.<br><br><b>Reference:</b> react-interview/real-time/01-websocket-custom-hooks.tsx
+
+# Error Handling
+
+{{c1::Error boundaries}} catch errors in the {{c2::component tree}} and display a fallback UI, preventing the entire app from crashing.<br><br><b>Reference:</b> react-interview/error-handling/01-error-boundaries-comprehensive.tsx
+
+{{c1::Try-catch blocks}} in async functions handle {{c2::promise rejections}} and {{c3::synchronous errors}}, but cannot catch errors in {{c4::event handlers}} or {{c5::setTimeout callbacks}}.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+# Retry Logic
+
+{{c1::Exponential backoff}} increases the delay between retries exponentially: {{c2::delay = initialDelay * (2 ^ attempt)}}, preventing {{c3::overwhelming failing services}}.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts, compliance-grc/automation/01-remediation-workflow.ts
+
+{{c1::Retry logic}} should be {{c2::idempotent}} to handle {{c3::duplicate requests}} safely, especially with {{c4::at-least-once delivery}} guarantees.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+# Mutex Pattern
+
+{{c1::Mutex}} (mutual exclusion) ensures {{c2::only one operation}} can access a resource at a time, preventing {{c3::race conditions}} in concurrent code.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+{{c1::Partitioned mutex}} allows {{c2::parallel processing}} of different partitions while ensuring {{c3::sequential processing}} within each partition.<br><br><b>Reference:</b> platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts
+
+# Service Discovery
+
+{{c1::Service discovery}} allows services to {{c2::find and communicate}} with each other dynamically, essential for {{c3::microservices architectures}}.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+{{c1::Service registry}} maintains a {{c2::directory of available services}} with their {{c3::endpoints}} and {{c4::health status}}, enabling {{c5::dynamic service location}}.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+# Health Checks
+
+{{c1::Health checks}} monitor service {{c2::availability}} and {{c3::readiness}}, enabling {{c4::automatic failover}} and {{c5::load balancer integration}}.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+{{c1::Liveness probes}} check if a service is {{c2::running}}, while {{c3::readiness probes}} check if a service is {{c4::ready to accept traffic}}.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+# Request Correlation
+
+{{c1::Request correlation}} uses {{c2::correlation IDs}} to track requests across {{c3::multiple services}}, enabling {{c4::distributed tracing}} and {{c5::debugging}}.<br><br><b>Reference:</b> interview-questions/10-nodejs-microservices-communication.ts
+
+# Compliance Metrics
+
+{{c1::Compliance score}} is calculated as {{c2::(totalControls - violations) / totalControls * 100}}, providing a {{c3::percentage-based metric}} for compliance posture.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+{{c1::Violation rate}} measures {{c2::violations per time period}}, while {{c3::remediation rate}} measures how quickly violations are {{c4::fixed}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Evidence Integrity
+
+{{c1::Cryptographic hashing}} (SHA-256) ensures {{c2::evidence integrity}} by detecting {{c3::tampering}}, as any change to the evidence will produce a {{c4::different hash}}.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+{{c1::Evidence signatures}} use {{c2::HMAC}} (Hash-based Message Authentication Code) to provide {{c3::authenticity}} in addition to {{c4::integrity}}.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+# Parallel Processing
+
+{{c1::Promise.all()}} executes promises {{c2::in parallel}} and waits for all to complete, failing fast if {{c3::any promise rejects}}.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+{{c1::Promise.allSettled()}} waits for all promises to {{c2::settle}} (resolve or reject), returning results for {{c3::both successes and failures}}.<br><br><b>Reference:</b> platform-engineering/nodejs/01-control-evidence-collection-api.ts
+
+# Debouncing
+
+{{c1::Debouncing}} delays function execution until {{c2::a period of inactivity}}, preventing {{c3::excessive function calls}} during rapid input.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+{{c1::Debounced auto-save}} saves form data after the user {{c2::stops typing}} for a specified duration, reducing {{c3::server load}} and {{c4::improving UX}}.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# Throttling
+
+{{c1::Throttling}} limits function execution to {{c2::at most once per time period}}, ensuring functions are called {{c3::no more frequently}} than the throttle interval.<br><br><b>Reference:</b> react-interview/core-concepts/01-real-time-telemetry-dashboard.tsx
+
+{{c1::Throttling}} is useful for {{c2::rate-limiting user actions}} like button clicks or {{c3::scroll events}}, while {{c4::debouncing}} is better for {{c5::search input}}.<br><br><b>Reference:</b> react-interview/core-concepts/01-real-time-telemetry-dashboard.tsx
+
+# Batch Processing
+
+{{c1::Batch processing}} groups multiple operations into {{c2::a single transaction}}, reducing {{c3::database round trips}} and improving {{c4::performance}}.<br><br><b>Reference:</b> interview-questions/06-nodejs-database-transactions.ts, interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+{{c1::Batching state updates}} in React groups multiple {{c2::setState calls}} into a single re-render, automatic in React 18 with {{c3::automatic batching}}.<br><br><b>Reference:</b> react-interview/core-concepts/01-real-time-telemetry-dashboard.tsx
+
+# Immutability
+
+{{c1::Immutability}} in React requires creating {{c2::new object/array references}} when updating state, as React uses {{c3::reference equality}} to detect changes.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+{{c1::Immutable update patterns}} use the {{c2::spread operator}} or {{c3::array methods}} like map/filter to create new references, ensuring React detects state changes.<br><br><b>Pattern:</b> <code>setState(prev => ({ ...prev, newValue }))</code><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# Normalized State
+
+{{c1::Normalized state}} stores data in a {{c2::flat structure}} with entities keyed by ID, reducing {{c3::data duplication}} and enabling {{c4::efficient updates}}.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+{{c1::Normalized state}} is ideal for {{c2::relational data}} like compliance frameworks and controls, as it prevents {{c3::data inconsistency}} and enables {{c4::efficient lookups}}.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+# Selector Pattern
+
+{{c1::Selectors}} are functions that {{c2::extract and transform}} data from state, enabling {{c3::computed values}} and {{c4::memoization}} with useMemo.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx, interview-questions/05-react-context-performance.tsx
+
+{{c1::Memoized selectors}} prevent {{c2::unnecessary recalculations}} by only recomputing when {{c3::dependencies change}}, improving performance for {{c4::expensive computations}}.<br><br><b>Reference:</b> platform-engineering/react/01-real-time-compliance-dashboard.tsx
+
+# Compound Components
+
+{{c1::Compound components}} are components that {{c2::work together}} to form a complete UI, sharing {{c3::implicit state}} through Context API.<br><br><b>Reference:</b> react-interview/component-library/01-reusable-component-architecture.tsx
+
+{{c1::Compound components}} provide {{c2::flexible composition}} while maintaining {{c3::encapsulated state}}, enabling users to {{c4::customize the structure}} while keeping behavior consistent.<br><br><b>Reference:</b> react-interview/component-library/01-reusable-component-architecture.tsx
+
+# Render Props
+
+{{c1::Render props}} is a pattern where a component accepts a {{c2::function as a prop}} that returns JSX, enabling {{c3::code reuse}} and {{c4::flexible composition}}.<br><br><b>Pattern:</b> <code>&lt;Component render={(data) => &lt;Child data={data} /&gt;} /&gt;</code>
+
+# Higher-Order Components
+
+{{c1::Higher-order components (HOCs)}} are functions that take a component and return a {{c2::new component}} with additional functionality, though {{c3::hooks}} are now preferred.<br><br><b>Pattern:</b> <code>const EnhancedComponent = withFeature(BaseComponent)</code>
+
+# Suspense Boundaries
+
+{{c1::Suspense boundaries}} can be {{c2::nested}} to provide {{c3::granular loading states}}, with inner boundaries handling {{c4::specific async operations}} while outer boundaries handle {{c5::broader loading}}.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+# Concurrent Rendering
+
+{{c1::Concurrent rendering}} in React 18 allows React to {{c2::interrupt rendering}} to handle {{c3::urgent updates}}, improving {{c4::perceived performance}} and {{c5::user experience}}.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+{{c1::Time slicing}} in concurrent rendering breaks work into {{c2::small chunks}} that can be {{c3::interrupted}}, preventing {{c4::long-running renders}} from blocking the UI.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+# Resource Pattern
+
+The {{c1::Resource pattern}} with Suspense creates a {{c2::promise-like object}} that Suspense can wait for, enabling {{c3::declarative data loading}}.<br><br><b>Reference:</b> interview-questions/01-react-concurrent-features.tsx
+
+# Preloading
+
+{{c1::Preloading}} loads code or data {{c2::before it's needed}}, improving {{c3::perceived performance}} by reducing wait time when users navigate or interact.<br><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+{{c1::Hover preloading}} starts loading components when users {{c2::hover over links}}, reducing {{c3::perceived load time}} when they click.<br><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx
+
+# Bundle Optimization
+
+{{c1::Code splitting}} reduces {{c2::initial bundle size}} by loading code {{c3::on-demand}}, improving {{c4::Time to Interactive (TTI)}} and {{c5::First Contentful Paint (FCP)}}.<br><br><b>Reference:</b> interview-questions/07-react-code-splitting.tsx, react-interview/build-optimization/01-bundle-size-optimization.ts
+
+{{c1::Tree shaking}} removes {{c2::unused code}} from bundles, requiring {{c3::ES modules}} and {{c4::side-effect-free imports}}.<br><br><b>Reference:</b> react-interview/build-optimization/01-bundle-size-optimization.ts
+
+# Accessibility
+
+{{c1::WCAG}} (Web Content Accessibility Guidelines) provides standards for {{c2::web accessibility}}, with levels {{c3::A}}, {{c4::AA}}, and {{c5::AAA}}.<br><br><b>Reference:</b> react-interview/accessibility/01-wcag-compliance.tsx
+
+{{c1::ARIA attributes}} provide {{c2::semantic information}} to assistive technologies, but should be used {{c3::sparingly}} when {{c4::semantic HTML}} is sufficient.<br><br><b>Reference:</b> react-interview/accessibility/01-wcag-compliance.tsx
+
+# Form Validation
+
+{{c1::Schema-driven validation}} uses libraries like {{c2::Zod}} or {{c3::Yup}} to define validation rules {{c4::declaratively}}, enabling {{c5::type-safe}} and {{c6::reusable}} validation logic.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx, react-interview/forms/01-advanced-form-validation.tsx
+
+{{c1::Cross-field validation}} validates {{c2::relationships between fields}}, requiring {{c3::access to the entire form state}} rather than individual fields.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# State Machine Transitions
+
+{{c1::State machine transitions}} are {{c2::explicit}} and {{c3::defined}}, preventing {{c4::invalid state changes}} and making the {{c5::state flow}} clear and testable.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+{{c1::Guard conditions}} in state machines {{c2::prevent transitions}} unless certain conditions are met, ensuring {{c3::valid state changes}} only.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# Dependency Resolution
+
+{{c1::Cross-step dependencies}} in multi-step forms require {{c2::validating later steps}} when {{c3::earlier steps change}}, ensuring {{c4::form consistency}}.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# Auto-save
+
+{{c1::Auto-save}} with debouncing saves form data {{c2::periodically}} as users type, preventing {{c3::data loss}} and improving {{c4::user experience}}.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+{{c1::Optimistic persistence}} saves data {{c2::immediately to local storage}} before server confirmation, providing {{c3::instant feedback}} while ensuring {{c4::server sync}}.<br><br><b>Reference:</b> platform-engineering/react/02-compliance-workflow-wizard.tsx
+
+# React Query Caching
+
+{{c1::React Query caching}} stores fetched data in memory, serving {{c2::cached data}} immediately while {{c3::refetching in the background}} to ensure freshness.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+{{c1::Stale-while-revalidate}} pattern serves {{c2::cached (stale) data}} immediately while {{c3::fetching fresh data}} in the background, providing {{c4::instant UI}} with {{c5::eventual consistency}}.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# Query Invalidation
+
+{{c1::Query invalidation}} in React Query marks queries as {{c2::stale}} and triggers {{c3::refetching}}, ensuring data stays {{c4::up to date}} after mutations.<br><br><b>Pattern:</b> <code>queryClient.invalidateQueries(['key'])</code><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# Grouping in Virtualization
+
+{{c1::Grouped virtualization}} renders groups of items (like compliance frameworks) with {{c2::expandable/collapsible}} sections, requiring {{c3::custom row height calculations}}.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# Web Worker Communication
+
+{{c1::Web Workers}} communicate with the main thread via {{c2::postMessage()}} and {{c3::message events}}, as they have {{c4::isolated memory}} and cannot share objects directly.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+{{c1::Transferable objects}} can be {{c2::transferred}} to Web Workers without copying, but they become {{c3::unusable}} in the original thread after transfer.<br><br><b>Reference:</b> platform-engineering/react/03-performance-optimization-large-datasets.tsx
+
+# Rule Engine
+
+{{c1::Rule engines}} evaluate {{c2::rules against resources}}, with {{c3::pre-compilation}} for performance and {{c4::batch evaluation}} for efficiency.<br><br><b>Reference:</b> platform-engineering/nodejs/03-compliance-rule-engine.ts
+
+{{c1::JSON-based DSL}} for rules provides a {{c2::declarative syntax}} that can be {{c3::version controlled}} and {{c4::validated}} before execution.<br><br><b>Reference:</b> platform-engineering/nodejs/03-compliance-rule-engine.ts
+
+# Evidence Data Model
+
+{{c1::Hybrid storage}} combines {{c2::event store}} (immutable audit trail) with {{c3::projection database}} (read-optimized views), enabling both {{c4::auditability}} and {{c5::queryability}}.<br><br><b>Reference:</b> compliance-grc/architecture/02-evidence-data-model.ts
+
+{{c1::Point-in-time reconstruction}} uses the event store to {{c2::rebuild state}} at any point in time, enabling {{c3::historical analysis}} and {{c4::audit verification}}.<br><br><b>Reference:</b> compliance-grc/architecture/02-evidence-data-model.ts
+
+# Star Schema
+
+{{c1::Star schema}} is a data warehouse design with a {{c2::central fact table}} surrounded by {{c3::dimension tables}}, optimized for {{c4::analytical queries}}.<br><br><b>Reference:</b> compliance-grc/architecture/02-evidence-data-model.ts
+
+# CI/CD Integration
+
+{{c1::Compliance gates}} in CI/CD pipelines {{c2::block deployments}} if compliance checks fail, ensuring {{c3::non-compliant code}} cannot reach production.<br><br><b>Reference:</b> compliance-grc/automation/02-cicd-integration.ts
+
+{{c1::Pre-commit hooks}} run compliance checks {{c2::before code is committed}}, catching issues {{c3::early in the development cycle}}.<br><br><b>Reference:</b> compliance-grc/automation/02-cicd-integration.ts
+
+# Drift Detection
+
+{{c1::Drift detection}} identifies when {{c2::actual infrastructure}} differs from {{c3::declared configuration}}, enabling {{c4::automated remediation}} or {{c5::alerting}}.<br><br><b>Reference:</b> compliance-grc/automation/02-cicd-integration.ts
+
+# Multi-Cloud Abstraction
+
+{{c1::Cloud provider adapters}} normalize different cloud APIs into a {{c2::unified interface}}, enabling {{c3::cloud-agnostic}} compliance monitoring.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts
+
+{{c1::Resource normalization}} converts cloud-specific resources into a {{c2::common format}}, enabling {{c3::unified compliance evaluation}} across providers.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts
+
+# Real-Time Event Streams
+
+{{c1::Event normalization}} converts cloud-specific events into a {{c2::common format}}, enabling {{c3::unified processing}} across different cloud providers.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/02-real-time-event-streams.ts
+
+{{c1::Event enrichment}} adds {{c2::additional context}} to events, such as {{c3::compliance framework mappings}} or {{c4::risk scores}}, enabling {{c5::intelligent processing}}.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/02-real-time-event-streams.ts
+
+# Stateful Evaluation
+
+{{c1::Stateful evaluation}} maintains {{c2::context across multiple events}}, enabling {{c3::complex compliance rules}} that depend on {{c4::event history}}.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/02-real-time-event-streams.ts
+
+# Feature Flags
+
+{{c1::Feature flags}} enable {{c2::gradual rollout}} of new features, allowing {{c3::testing in production}} with {{c4::controlled exposure}} to users.<br><br><b>Reference:</b> compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts
+
+# Dry Run
+
+{{c1::Dry run}} mode executes remediation workflows {{c2::without making actual changes}}, enabling {{c3::safe testing}} and {{c4::validation}} before production use.<br><br><b>Reference:</b> compliance-grc/automation/01-remediation-workflow.ts
+
+# Rollback
+
+{{c1::Rollback}} mechanisms {{c2::undo changes}} if remediation fails or causes issues, ensuring {{c3::system stability}} and {{c4::quick recovery}}.<br><br><b>Reference:</b> compliance-grc/automation/01-remediation-workflow.ts
+
+# Change Tracking
+
+{{c1::Change tracking}} records all modifications made by remediation workflows, providing {{c2::audit trails}} and enabling {{c3::rollback}} if needed.<br><br><b>Reference:</b> compliance-grc/automation/01-remediation-workflow.ts
+
+# Graduated Response
+
+{{c1::Graduated response}} applies {{c2::increasingly severe actions}} based on violation severity: {{c3::Tier 1}} (automatic), {{c4::Tier 2}} (notification), {{c5::Tier 3}} (approval required).<br><br><b>Reference:</b> compliance-grc/automation/01-remediation-workflow.ts
+
+# Compliance Trend
+
+{{c1::Compliance trend}} tracks whether compliance is {{c2::improving}}, {{c3::stable}}, or {{c4::degrading}} over time, enabling {{c5::proactive management}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Stratified Sampling
+
+{{c1::Stratified sampling}} ensures {{c2::representation across risk levels}}, sampling {{c3::proportionally}} from each risk category to maintain {{c4::statistical validity}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Adaptive Sampling
+
+{{c1::Adaptive sampling}} adjusts sampling rates based on {{c2::event volume}}, increasing rates during {{c3::low volume}} and decreasing during {{c4::high volume}} to maintain {{c5::consistent resource usage}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Sampling Statistics
+
+{{c1::Sampling statistics}} track {{c2::total events}}, {{c3::sampled events}}, and {{c4::sampling rates}} by severity and control, enabling {{c5::monitoring}} and {{c6::optimization}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Time Window Utilities
+
+{{c1::Time window utilities}} calculate {{c2::time boundaries}} for different granularities (minute, hour, day, month), enabling {{c3::consistent aggregation}} across time scales.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Control-Level Metrics
+
+{{c1::Control-level metrics}} aggregate compliance events by {{c2::control and framework}}, providing {{c3::compliance posture}} at the control level for {{c4::detailed analysis}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Multi-Granularity Storage
+
+{{c1::Multi-granularity storage}} maintains aggregated data at {{c2::multiple time scales}} (minute, hour, day, month), enabling {{c3::efficient queries}} at different time ranges.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Query Optimization
+
+{{c1::Query optimization}} for time-series data uses {{c2::appropriate granularity}} based on query time range: {{c3::minute}} for recent data, {{c4::hour/day}} for medium ranges, {{c5::month}} for long ranges.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Top Violating Resources
+
+{{c1::Top violating resources}} identifies resources with the {{c2::most violations}}, enabling {{c3::prioritized remediation}} and {{c4::focused compliance efforts}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Average Time to Remediate
+
+{{c1::Average time to remediate}} measures {{c2::how quickly violations are fixed}}, providing a {{c3::key performance indicator}} for compliance operations efficiency.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Violation Rate
+
+{{c1::Violation rate}} calculates {{c2::violations per time period}}, enabling {{c3::trend analysis}} and {{c4::compliance monitoring}} over time.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Remediation Rate
+
+{{c1::Remediation rate}} measures {{c2::how many violations are fixed}} relative to {{c3::total violations}}, indicating {{c4::compliance operations effectiveness}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Compliance Score Calculation
+
+{{c1::Compliance score}} is calculated as {{c2::(totalControls - violations) / totalControls * 100}}, providing a {{c3::percentage-based metric}} that ranges from {{c4::0 to 100}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Event Type Aggregation
+
+{{c1::Event type aggregation}} groups events by type ({{c2::VIOLATION}}, {{c3::REMEDIATION}}, {{c4::ASSESSMENT}}, {{c5::EVIDENCE_COLLECTED}}), enabling {{c6::type-specific analysis}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Severity Distribution
+
+{{c1::Severity distribution}} tracks the count of events by severity ({{c2::CRITICAL}}, {{c3::HIGH}}, {{c4::MEDIUM}}, {{c5::LOW}}), enabling {{c6::risk assessment}} and {{c7::prioritization}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Unique Resources Tracking
+
+{{c1::Unique resources tracking}} counts {{c2::distinct resources}} affected by events, enabling {{c3::scope assessment}} and {{c4::impact analysis}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Sample Event IDs
+
+{{c1::Sample event IDs}} store a {{c2::representative subset}} of event IDs in aggregated data, enabling {{c3::drill-down}} to specific events for {{c4::detailed analysis}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# First and Last Seen
+
+{{c1::First and last seen timestamps}} track the {{c2::time range}} of events in an aggregation window, enabling {{c3::temporal analysis}} and {{c4::time-bound queries}}.<br><br><b>Reference:</b> interview-questions/11-nodejs-event-aggregation-rollup.ts
+
+# Risk Score Calculation
+
+{{c1::Risk score}} is typically calculated based on {{c2::violation severity}}, {{c3::resource criticality}}, and {{c4::compliance framework requirements}}, providing a {{c5::numeric risk assessment}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Sampling Probability
+
+{{c1::Sampling probability}} is calculated as {{c2::baseRate * riskMultiplier}}, ensuring {{c3::high-risk events}} have {{c4::higher sampling rates}} than low-risk events.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Deterministic Hash Sampling
+
+{{c1::Deterministic hash sampling}} uses {{c2::event ID hashing}} to determine sampling, ensuring the {{c3::same events}} are always sampled consistently, enabling {{c4::auditability}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Risk Multipliers
+
+{{c1::Risk multipliers}} adjust sampling probability based on severity: {{c2::CRITICAL}} (1.0 = 100%), {{c3::HIGH}} (0.8), {{c4::MEDIUM}} (0.5), {{c5::LOW}} (0.1).<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Adaptive Threshold
+
+{{c1::Adaptive threshold}} triggers adaptive sampling when event volume {{c2::exceeds a threshold}}, automatically adjusting rates to maintain {{c3::consistent resource usage}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Sampling by Control
+
+{{c1::Sampling by control}} tracks statistics per control, enabling {{c2::control-specific optimization}} and {{c3::identification of high-volume controls}} that may need different sampling strategies.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Sampling by Severity
+
+{{c1::Sampling by severity}} tracks statistics per severity level, enabling {{c2::severity-specific analysis}} and ensuring {{c3::critical events}} are never under-sampled.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Total Events Counter
+
+{{c1::Total events counter}} tracks the {{c2::cumulative count}} of all events processed, enabling {{c3::sampling rate calculation}} and {{c4::statistical analysis}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Sampled Events Counter
+
+{{c1::Sampled events counter}} tracks the {{c2::count of sampled events}}, enabling {{c3::sampling rate calculation}} as {{c4::sampledEvents / totalEvents}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+
+# Sampling Rate Metric
+
+{{c1::Sampling rate}} is calculated as {{c2::sampledEvents / totalEvents}}, providing a {{c3::percentage}} of events that were sampled, enabling {{c4::monitoring}} and {{c5::optimization}}.<br><br><b>Reference:</b> interview-questions/12-nodejs-sampling-risk-bias.ts
+

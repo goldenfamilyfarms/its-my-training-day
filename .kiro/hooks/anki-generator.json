@@ -1,0 +1,13 @@
+{
+  "name": "Auto-generate Anki Cards",
+  "description": "Automatically generates Anki flashcards when a study guide is saved",
+  "trigger": {
+    "type": "onFileSave",
+    "pattern": "its-my-training-day/**/*-study-guide.md"
+  },
+  "action": {
+    "type": "shellCommand",
+    "command": "python -m its-my-training-day._tools.anki-generator generate --input \"${file}\" --output \"${fileDir}/../_anki/\" --min-cards 100"
+  },
+  "enabled": true
+}

@@ -87,4 +87,33 @@ storybook-static/
 # Misc
 *.pem
 .vercel
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.hypothesis/
+.pytest_cache/
 
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large files - PDFs and Anki packages
+books/ebooks/
+books/anki-cards/
+*.apkg
+*.pdf
+
+# Logs
+*.log

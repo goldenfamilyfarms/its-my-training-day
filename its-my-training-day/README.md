@@ -1,6 +1,6 @@
 # It's My Training Day 🎯
 
-> Comprehensive interview preparation and training materials for full-stack engineering, GRC/Compliance, and platform engineering roles.
+> Comprehensive interview preparation and training materials for full-stack engineering, GRC/Compliance, platform engineering, and system design roles.
 
 This directory consolidates all training, interview preparation, and practice materials from across the repository into a single, well-organized structure.
 
@@ -82,6 +82,33 @@ This directory was created by consolidating overlapping content from:
 
 For detailed information about what was consolidated and how, see [CONSOLIDATION_MAP.md](./CONSOLIDATION_MAP.md).
 
+## Training Tracks (Legacy)
+
+These tracks live at the repository root and remain useful for structured study:
+
+### 1. React/Node.js Full Stack (`react-nodejs-fullstack/`)
+Comprehensive preparation for full-stack development roles covering:
+- **Fundamentals**: React hooks, state management, Node.js event loop
+- **Automation**: Testing frameworks, CI/CD, build tooling
+- **Retail Operations**: Customer-facing and internal application patterns
+- **Dashboards & Telemetry**: Observability, metrics, real-time data visualization
+
+### 2. Python Backend (`python-backend/`)
+Deep dive into Python backend development and automation:
+- **Fundamentals**: Python internals, OOP, decorators, generators, async/await
+- **API Design**: RESTful patterns, GraphQL, best practices
+- **FastAPI**: Modern Python web framework specifics
+- **Microservices**: Distributed architecture, service communication
+- **Live Coding**: Algorithm and data structure interview patterns
+
+### 3. System Design & Architecture (`system-design-architecture/`)
+Architecture and system design interview preparation:
+- **Fundamentals**: Distributed systems, CAP theorem, consistency models
+- **Observability**: Monitoring, logging, tracing architecture
+- **Solutions Architecture**: Cloud patterns, AWS/GCP/Azure designs
+- **DevOps**: Infrastructure as code, deployment strategies
+- **Interview Frameworks**: Structured approaches to design questions
+
 ## 🎯 How to Use This Repository
 
 ### For Interview Preparation
@@ -117,6 +144,15 @@ For detailed information about what was consolidated and how, see [CONSOLIDATION
    - Combine patterns from multiple directories
    - Apply to real-world scenarios
    - Focus on production readiness
+
+## Quick Start Guide
+
+1. **Choose your focus**: Start with the training track most relevant to your target role. Check `job-descriptions/` for mappings.
+2. **Study with structure**: Each topic has a study guide with mock questions, detailed answers, and follow-ups.
+3. **Practice actively**: Use `_practice/` directories to solve problems without looking at solutions.
+4. **Track progress**: Update `progress.md` as you complete topics.
+5. **Generate flashcards**: Use the Anki generator tool to create spaced repetition cards.
+6. **Schedule reviews**: Follow the spaced repetition schedule (1, 3, 7, 14, 30 days).
 
 ## 📋 Study Recommendations
 

@@ -1,0 +1,12 @@
+# Anki Card Generator Dependencies
+
+# Core dependencies
+genanki>=0.13.0          # Generate Anki .apkg files
+markdown>=3.4.0          # Parse markdown content
+
+# Testing dependencies
+pytest>=7.0.0            # Test framework
+hypothesis>=6.0.0        # Property-based testing
+
+# Optional: for enhanced markdown parsing
+markdown-it-py>=3.0.0    # Alternative markdown parser with better AST support
