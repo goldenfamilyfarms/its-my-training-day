@@ -4,23 +4,40 @@ This repository contains organized technical interview questions and senior-leve
 
 ## Repository Structure
 
-The repository is organized by domain and technology stack:
+The repository is organized by domain and technology stack. All training and interview preparation materials have been consolidated into the `its-my-training-day` directory:
 
 ```
 .
-├── compliance-grc/
-│   ├── fundamentals/          # Compliance & GRC Fundamentals (Questions 1-4)
-│   ├── architecture/           # Platform Engineering & Architecture (Questions 5-8)
-│   ├── automation/            # Automation & Tooling (Questions 9-12)
-│   └── cloud-infrastructure/  # Cloud & Infrastructure (Questions 13-16)
+├── its-my-training-day/        # 🎯 All training materials consolidated here
+│   ├── compliance-grc/         # Compliance & GRC implementations
+│   │   ├── fundamentals/       # Compliance & GRC Fundamentals (Questions 1-4)
+│   │   ├── architecture/       # Platform Engineering & Architecture (Questions 5-8)
+│   │   ├── automation/         # Automation & Tooling (Questions 9-12)
+│   │   └── cloud-infrastructure/ # Cloud & Infrastructure (Questions 13-16)
+│   │
+│   ├── platform-engineering/   # Platform engineering implementations
+│   │   ├── react/              # React-specific questions and implementations
+│   │   ├── nodejs/             # Node.js-specific questions and implementations
+│   │   └── fullstack/          # Full-stack integration questions
+│   │
+│   ├── interview-questions/    # 12 comprehensive interview questions
+│   ├── react-interview/        # React interview deep dives
+│   ├── leetcode-top-75/        # LeetCode problem solutions
+│   ├── algorithms/             # Algorithm implementations
+│   ├── advanced-grc-interview-questions/ # Advanced GRC questions
+│   ├── anki/                   # Anki flashcards
+│   ├── docs/                   # Documentation
+│   ├── we-talking-about-practice/ # Practice materials
+│   ├── README.md               # Training directory guide
+│   └── CONSOLIDATION_MAP.md    # Detailed consolidation information
 │
-├── platform-engineering/
-│   ├── react/                 # React-specific questions and implementations
-│   ├── nodejs/                # Node.js-specific questions and implementations
-│   └── fullstack/             # Full-stack integration questions
-│
+├── MASTER_STUDY_PLAN.md        # Comprehensive study plan
+├── QUESTIONS_INDEX.md          # Index of all questions
+├── STUDY_PLAN.md               # Structured study schedule
 └── README.md                   # This file
 ```
+
+> **📚 All training materials are now in [`its-my-training-day/`](./its-my-training-day/)** - See the [directory README](./its-my-training-day/README.md) for detailed navigation and [CONSOLIDATION_MAP.md](./its-my-training-day/CONSOLIDATION_MAP.md) for information about what was consolidated.
 
 ## Questions by Domain
 
@@ -87,7 +104,7 @@ Each question includes:
 
 ### Compliance & GRC Fundamentals
 
-1. **Framework Overlap Control Mapping** (`compliance-grc/fundamentals/01-framework-overlap-control-mapping.ts`)
+1. **Framework Overlap Control Mapping** (`its-my-training-day/compliance-grc/fundamentals/01-framework-overlap-control-mapping.ts`)
    - Control mapping matrix for multi-framework support
    - Evidence tagging with applicable frameworks
    - Framework-specific compliance views
@@ -95,13 +112,13 @@ Each question includes:
 
 ### Platform Engineering & Architecture
 
-1. **Policy-as-Code Framework** (`compliance-grc/architecture/01-policy-as-code-framework.ts`)
+1. **Policy-as-Code Framework** (`its-my-training-day/compliance-grc/architecture/01-policy-as-code-framework.ts`)
    - YAML-based DSL for policy definition
    - Policy parser and compiler
    - AST-based evaluation engine
    - Versioning support
 
-2. **Evidence Data Model** (`compliance-grc/architecture/02-evidence-data-model.ts`)
+2. **Evidence Data Model** (`its-my-training-day/compliance-grc/architecture/02-evidence-data-model.ts`)
    - Hybrid storage (event store + projection database)
    - Immutable event store with cryptographic signatures
    - Point-in-time reconstruction
@@ -109,13 +126,13 @@ Each question includes:
 
 ### Automation & Tooling
 
-1. **Remediation Workflow** (`compliance-grc/automation/01-remediation-workflow.ts`)
+1. **Remediation Workflow** (`its-my-training-day/compliance-grc/automation/01-remediation-workflow.ts`)
    - Risk-based graduated response (Tier 1-3)
    - Safety mechanisms (dry-run, rate limiting, rollback)
    - Circuit breakers
    - Change tracking
 
-2. **CI/CD Integration** (`compliance-grc/automation/02-cicd-integration.ts`)
+2. **CI/CD Integration** (`its-my-training-day/compliance-grc/automation/02-cicd-integration.ts`)
    - Pre-commit hooks
    - PR/MR validation
    - Compliance gates
@@ -123,13 +140,13 @@ Each question includes:
 
 ### Cloud & Infrastructure
 
-1. **Multi-Cloud Abstraction** (`compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts`)
+1. **Multi-Cloud Abstraction** (`its-my-training-day/compliance-grc/cloud-infrastructure/01-multi-cloud-abstraction.ts`)
    - Adapter pattern for cloud providers
    - Resource normalization
    - Unified compliance evaluation
    - Feature flags for rollout
 
-2. **Real-Time Event Streams** (`compliance-grc/cloud-infrastructure/02-real-time-event-streams.ts`)
+2. **Real-Time Event Streams** (`its-my-training-day/compliance-grc/cloud-infrastructure/02-real-time-event-streams.ts`)
    - Event normalization across clouds
    - Event enrichment
    - Stateful evaluation
@@ -137,19 +154,19 @@ Each question includes:
 
 ### React Implementations
 
-1. **Real-Time Compliance Dashboard** (`platform-engineering/react/01-real-time-compliance-dashboard.tsx`)
+1. **Real-Time Compliance Dashboard** (`its-my-training-day/platform-engineering/react/01-real-time-compliance-dashboard.tsx`)
    - Server-Sent Events (SSE) for streaming updates
    - Normalized state management
    - Virtualization for high-cardinality data
    - Memoized selectors for compliance calculations
 
-2. **Compliance Workflow Wizard** (`platform-engineering/react/02-compliance-workflow-wizard.tsx`)
+2. **Compliance Workflow Wizard** (`its-my-training-day/platform-engineering/react/02-compliance-workflow-wizard.tsx`)
    - State machine pattern for workflow orchestration
    - Schema-driven validation with Zod
    - Auto-save with debouncing
    - Cross-step dependency resolution
 
-3. **Performance Optimization for Large Datasets** (`platform-engineering/react/03-performance-optimization-large-datasets.tsx`)
+3. **Performance Optimization for Large Datasets** (`its-my-training-day/platform-engineering/react/03-performance-optimization-large-datasets.tsx`)
    - React Query for server state
    - Virtualization with grouping support
    - Web Workers for heavy filtering
@@ -157,19 +174,19 @@ Each question includes:
 
 ### Node.js Implementations
 
-1. **Control Evidence Collection API** (`platform-engineering/nodejs/01-control-evidence-collection-api.ts`)
+1. **Control Evidence Collection API** (`its-my-training-day/platform-engineering/nodejs/01-control-evidence-collection-api.ts`)
    - Adapter pattern for multi-cloud providers
    - Token bucket rate limiting
    - Parallel collection with error boundaries
    - Cryptographic hashing for evidence integrity
 
-2. **Event-Driven Compliance Monitoring** (`platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts`)
+2. **Event-Driven Compliance Monitoring** (`its-my-training-day/platform-engineering/nodejs/02-event-driven-compliance-monitoring.ts`)
    - Event sourcing pattern
    - At-least-once delivery guarantees
    - Partitioned ordering for parallel processing
    - Dead letter queue for failed events
 
-3. **Compliance Rule Engine** (`platform-engineering/nodejs/03-compliance-rule-engine.ts`)
+3. **Compliance Rule Engine** (`its-my-training-day/platform-engineering/nodejs/03-compliance-rule-engine.ts`)
    - JSON-based DSL for rule definition
    - Pre-compilation for performance
    - Batch evaluation with concurrency control
@@ -177,7 +194,7 @@ Each question includes:
 
 ### Full-Stack Implementations
 
-1. **TypeScript Compliance Types** (`platform-engineering/fullstack/01-typescript-compliance-types.ts`)
+1. **TypeScript Compliance Types** (`its-my-training-day/platform-engineering/fullstack/01-typescript-compliance-types.ts`)
    - Discriminated unions for framework types
    - Branded types for validated data
    - Generic repository pattern
