@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { type ColumnDef } from '@tanstack/react-table'
@@ -7,10 +8,10 @@ import {
   ChevronDown, Clock, MessageSquare, Wifi, Mail, PhoneCall, Twitter
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { TnMapEntry, UserEntry, GeneralNote, TrueUpEntry, CallFlowEntry, OmniChannelEntry } from '@/types'
+import type { Project, TnMapEntry, UserEntry, GeneralNote, TrueUpEntry, CallFlowEntry, OmniChannelEntry } from '@/types'
 import {
-  mockProjects, mockTnMap, mockUsers, mockGeneralNotes,
-  mockTrueUp, mockCallFlows, mockOmniChannel
+  mockTnMap, mockUsers, mockGeneralNotes,
+  mockTrueUp, mockCallFlows, mockOmniChannel, mockProvisioningLogs
 } from '@/data/mock-data'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { fetchProject, provisionProject } from '@/lib/api'
 
 // TN Map columns
 const tnMapColumns: ColumnDef<TnMapEntry>[] = [
@@ -187,14 +189,43 @@ const omniSubTypes = [
 export default function ProjectDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const project = mockProjects.find(p => p.id === id)
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  if (!project) {
+  const loadProject = async () => {
+    if (!id) return
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const data = await fetchProject(id)
+      setProject(data)
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Failed to load project')
+      setProject(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadProject()
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[60vh]">
+        <p className="text-sm text-muted-foreground">Loading project…</p>
+      </div>
+    )
+  }
+
+  if (loadError || !project) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <h2 className="text-xl font-semibold">Project Not Found</h2>
-          <p className="text-muted-foreground mt-1">The project you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mt-1">{loadError ?? 'The project you are looking for does not exist.'}</p>
           <Button onClick={() => navigate('/projects')} className="mt-4">Back to Projects</Button>
         </div>
       </div>
@@ -209,6 +240,22 @@ export default function ProjectDetail() {
     error: { label: 'Error', variant: 'destructive' },
   }
   const sc = statusConfig[project.status]
+  const provisioningSteps = [
+    { label: 'Design', description: 'Form data captured' },
+    { label: 'Review', description: 'QA and validation' },
+    { label: 'Provision', description: 'XLSX to partner' },
+    { label: 'Complete', description: 'Devices live' },
+  ]
+  const statusToStep: Record<Project['status'], number> = {
+    draft: 0,
+    'in-progress': 1,
+    provisioning: 2,
+    completed: 3,
+    error: 2,
+  }
+  const activeStep = statusToStep[project.status]
+  const latestNote = mockGeneralNotes[0]
+  const latestProvisioning = mockProvisioningLogs[0]
 
   return (
     <motion.div
@@ -250,7 +297,15 @@ export default function ProjectDetail() {
           </Button>
           <Button
             size="sm"
-            onClick={() => toast.success('Provisioning request sent to third-party application')}
+            onClick={async () => {
+              try {
+                const response = await provisionProject(project.id)
+                setProject(response.project)
+                toast.success('Provisioning request sent to third-party application')
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : 'Provisioning failed')
+              }
+            }}
           >
             <Send className="mr-2 h-4 w-4" />
             Provision
@@ -275,6 +330,80 @@ export default function ProjectDetail() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Project Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Customer</span>
+              <span className="font-medium">{project.customerName}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Engineering ID</span>
+              <span className="font-mono">{project.engId}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Resource</span>
+              <span className="font-medium">{project.resource}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Order Type</span>
+              <span className="font-medium">{project.orderType}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Provisioning Pipeline</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {provisioningSteps.map((step, index) => (
+              <div key={step.label} className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "mt-0.5 h-6 w-6 rounded-full border flex items-center justify-center text-xs font-semibold",
+                    index <= activeStep ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground"
+                  )}
+                >
+                  {index + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{step.label}</p>
+                  <p className="text-xs text-muted-foreground">{step.description}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Latest Activity</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Last note</p>
+              <p className="text-sm font-medium mt-1">{latestNote.notes}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{latestNote.lastUpdateDateTime}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">Provisioning</p>
+              <p className="text-sm font-medium mt-1">{latestProvisioning.notes}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant={latestProvisioning.status === 'completed' ? 'success' : 'warning'}>
+                  {latestProvisioning.status}
+                </Badge>
+                <span className="text-[11px] text-muted-foreground">{latestProvisioning.lastUpdateDateTime}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}

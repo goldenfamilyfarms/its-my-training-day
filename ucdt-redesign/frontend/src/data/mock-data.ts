@@ -1,4 +1,4 @@
-import type { Project, TnMapEntry, UserEntry, GeneralNote, TrueUpEntry, CallFlowEntry, OmniChannelEntry, ProvisioningLog } from '@/types'
+import type { Project, TnMapEntry, UserEntry, GeneralNote, TrueUpEntry, CallFlowEntry, OmniChannelEntry, ProvisioningLog, ProvisioningTemplate } from '@/types'
 
 export const mockProjects: Project[] = [
   {
@@ -186,6 +186,53 @@ export const mockProvisioningLogs: ProvisioningLog[] = Array.from({ length: 12 }
     : 'Provisioning Completed! Number of providers: 1 Number of groups: 1 Number of virtual users: 9 Num...',
   status: (i % 2 === 0 ? 'started' : 'completed') as ProvisioningLog['status'],
 }))
+
+export const mockProvisioningTemplates: ProvisioningTemplate[] = [
+  {
+    id: 'tpl-1',
+    name: 'Hosted Voice - UC Enterprise',
+    product: 'Hosted Voice',
+    version: 'v3.2',
+    owner: 'Provisioning Ops',
+    status: 'active',
+    lastUpdated: '2023-01-08',
+    description: 'Standard UC Enterprise provisioning mapping for BroadWorks.',
+    isDefault: true,
+  },
+  {
+    id: 'tpl-2',
+    name: 'Standard Config - SMB',
+    product: 'Hosted Voice',
+    version: 'v2.4',
+    owner: 'Design Engineering',
+    status: 'active',
+    lastUpdated: '2022-12-15',
+    description: 'SMB provisioning template with simplified device lineup.',
+    isDefault: false,
+  },
+  {
+    id: 'tpl-3',
+    name: 'Migration - Legacy Import',
+    product: 'Migration',
+    version: 'v1.9',
+    owner: 'Legacy Ops',
+    status: 'deprecated',
+    lastUpdated: '2022-10-04',
+    description: 'Legacy mapping for migration projects, pending retirement.',
+    isDefault: false,
+  },
+  {
+    id: 'tpl-4',
+    name: 'Omni Channel Add-on',
+    product: 'Omni Channel',
+    version: 'v1.1',
+    owner: 'CX Team',
+    status: 'draft',
+    lastUpdated: '2023-01-11',
+    description: 'Draft template for omni channel queue provisioning.',
+    isDefault: false,
+  },
+]
 
 export const dashboardStats = {
   totalProjects: 7014,

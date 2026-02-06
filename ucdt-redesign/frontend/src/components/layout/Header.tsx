@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sun, Moon, Search, Bell, User, Command } from 'lucide-react'
+import { Sun, Moon, Search, Bell, Command, Plus, Server } from 'lucide-react'
 import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/command'
 import { mockProjects } from '@/data/mock-data'
 import { Badge } from '@/components/ui/badge'
+import { dashboardStats } from '@/data/mock-data'
+import { Separator } from '@/components/ui/separator'
 
 export default function Header() {
   const { theme, setTheme, resolvedTheme } = useTheme()
@@ -48,6 +50,21 @@ export default function Header() {
         </Button>
 
         <div className="flex-1" />
+
+        <div className="hidden items-center gap-2 lg:flex">
+          <div className="flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
+            <Server className="h-3.5 w-3.5 text-amber-500" />
+            Provisioning queue
+            <Badge variant="warning" className="h-5 px-1.5 text-[10px]">
+              {dashboardStats.provisioningQueue}
+            </Badge>
+          </div>
+          <Separator orientation="vertical" className="h-5" />
+          <Button size="sm" onClick={() => navigate('/projects')}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Project
+          </Button>
+        </div>
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">

@@ -12,7 +12,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns3, Search, X, Rows3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,6 +45,7 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [globalFilter, setGlobalFilter] = useState('')
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
 
   const table = useReactTable({
     data,
@@ -71,6 +72,10 @@ export function DataTable<TData, TValue>({
     },
   })
 
+  const activeSearchValue = searchKey
+    ? (table.getColumn(searchKey)?.getFilterValue() as string) ?? ''
+    : globalFilter
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -80,7 +85,7 @@ export function DataTable<TData, TValue>({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={searchPlaceholder}
-              value={searchKey ? (table.getColumn(searchKey)?.getFilterValue() as string) ?? '' : globalFilter}
+              value={activeSearchValue}
               onChange={(e) => {
                 if (searchKey) {
                   table.getColumn(searchKey)?.setFilterValue(e.target.value)
@@ -90,7 +95,7 @@ export function DataTable<TData, TValue>({
               }}
               className="pl-9 h-9"
             />
-            {(searchKey ? (table.getColumn(searchKey)?.getFilterValue() as string) : globalFilter) && (
+            {activeSearchValue && (
               <button
                 onClick={() => {
                   if (searchKey) {
@@ -105,9 +110,37 @@ export function DataTable<TData, TValue>({
               </button>
             )}
           </div>
+          {activeSearchValue && (
+            <div className="hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+              <span>Searching:</span>
+              <span className="rounded-full bg-muted px-2 py-0.5 text-foreground">{activeSearchValue}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-1 text-xs text-muted-foreground md:flex">
+            <Rows3 className="h-3.5 w-3.5" />
+            <span>Density</span>
+          </div>
+          <div className="hidden items-center gap-1 md:flex">
+            <Button
+              variant={density === 'comfortable' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8"
+              onClick={() => setDensity('comfortable')}
+            >
+              Comfortable
+            </Button>
+            <Button
+              variant={density === 'compact' ? 'default' : 'outline'}
+              size="sm"
+              className="h-8"
+              onClick={() => setDensity('compact')}
+            >
+              Compact
+            </Button>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-9">
@@ -180,7 +213,7 @@ export function DataTable<TData, TValue>({
                     data-state={row.getIsSelected() && "selected"}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-3">
+                      <TableCell key={cell.id} className={cn(density === 'compact' ? "py-2 text-xs" : "py-3")}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}

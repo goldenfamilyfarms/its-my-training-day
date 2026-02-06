@@ -93,6 +93,18 @@ export interface ProvisioningLog {
   status: 'started' | 'completed' | 'failed'
 }
 
+export interface ProvisioningTemplate {
+  id: string
+  name: string
+  product: string
+  version: string
+  owner: string
+  status: 'active' | 'deprecated' | 'draft'
+  lastUpdated: string
+  description: string
+  isDefault: boolean
+}
+
 export type NavItem = {
   title: string
   href: string
