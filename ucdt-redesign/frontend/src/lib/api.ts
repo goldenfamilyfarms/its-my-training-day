@@ -1,29 +1,48 @@
 import type { Project } from '@/types'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
-export async function fetchProjects(options?: { limit?: number }): Promise<Project[]> {
-  // For now, return mock data since backend may not be running
-  const { mockProjects } = await import('@/data/mock-data')
-  return mockProjects.slice(0, options?.limit ?? 100)
+type ProjectListResponse = {
+  data: Project[]
+  total: number
+  page: number
+  totalPages: number
 }
 
-export async function fetchProject(id: string): Promise<Project> {
-  const { mockProjects } = await import('@/data/mock-data')
-  const project = mockProjects.find(p => p.id === id)
-  if (!project) {
-    throw new Error('Project not found')
+async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    ...options,
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(errorText || `Request failed with status ${response.status}`)
   }
-  return project
+
+  return response.json() as Promise<T>
 }
 
-export async function provisionProject(id: string): Promise<{ project: Project; message: string }> {
-  const { mockProjects } = await import('@/data/mock-data')
-  const project = mockProjects.find(p => p.id === id)
-  if (!project) {
-    throw new Error('Project not found')
-  }
-  // Simulate provisioning by updating status
-  const updatedProject = { ...project, status: 'provisioning' as const }
-  return { project: updatedProject, message: 'Provisioning started' }
+export async function fetchProjects(params?: { page?: number; limit?: number; search?: string; status?: Project['status'] | '' }) {
+  const searchParams = new URLSearchParams()
+  if (params?.page) searchParams.set('page', String(params.page))
+  if (params?.limit) searchParams.set('limit', String(params.limit))
+  if (params?.search) searchParams.set('search', params.search)
+  if (params?.status) searchParams.set('status', params.status)
+
+  const query = searchParams.toString()
+  const response = await apiRequest<ProjectListResponse>(`/api/projects${query ? `?${query}` : ''}`)
+  return response.data
+}
+
+export async function fetchProject(id: string) {
+  return apiRequest<Project>(`/api/projects/${id}`)
+}
+
+export async function provisionProject(id: string) {
+  return apiRequest<{ message: string; project: Project; provisioningId: string }>(`/api/projects/${id}/provision`, {
+    method: 'POST',
+  })
 }
