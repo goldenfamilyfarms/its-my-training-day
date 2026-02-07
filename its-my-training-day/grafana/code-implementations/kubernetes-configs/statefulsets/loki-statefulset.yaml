@@ -1,0 +1,691 @@
+# =============================================================================
+# Loki StatefulSet - Production-Ready Configuration
+# =============================================================================
+#
+# This manifest demonstrates a production-ready Loki deployment using StatefulSet.
+# StatefulSets are used for stateful applications that require:
+# - Stable, unique network identifiers
+# - Stable, persistent storage
+# - Ordered, graceful deployment and scaling
+# - Ordered, automated rolling updates
+#
+# Loki Architecture Modes:
+# 1. Monolithic (single binary) - This example
+# 2. Simple Scalable (read/write separation)
+# 3. Microservices (full component separation)
+#
+# Best Practices Demonstrated:
+# 1. Persistent volume claims for log data retention
+# 2. Proper storage configuration for write-ahead log (WAL)
+# 3. Health probes for Kubernetes orchestration
+# 4. Resource management for cluster stability
+# 5. Security hardening with non-root user
+#
+# Usage:
+#   kubectl apply -f loki-statefulset.yaml -n monitoring
+#
+# Prerequisites:
+#   - Kubernetes cluster v1.25+
+#   - Storage class with dynamic provisioning
+#   - Namespace 'monitoring' created
+#
+# =============================================================================
+
+---
+# =============================================================================
+# ConfigMap: Loki Configuration
+# =============================================================================
+# Loki configuration is complex and environment-specific.
+# This ConfigMap provides a production-ready starting point.
+#
+# Key Configuration Sections:
+# - auth_enabled: Multi-tenancy support
+# - server: HTTP/gRPC server settings
+# - ingester: Log ingestion and WAL configuration
+# - schema_config: Index and chunk storage schema
+# - storage_config: Backend storage configuration
+# - compactor: Index compaction settings
+# - limits_config: Rate limiting and retention
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: monitoring
+  labels:
+    app: loki
+    component: config
+data:
+  loki.yaml: |
+    # ==========================================================================
+    # Authentication Configuration
+    # ==========================================================================
+    # Enable multi-tenancy (requires X-Scope-OrgID header)
+    # Set to false for single-tenant deployments
+    auth_enabled: false
+    
+    # ==========================================================================
+    # Server Configuration
+    # ==========================================================================
+    server:
+      # HTTP server settings
+      http_listen_port: 3100
+      http_listen_address: 0.0.0.0
+      
+      # gRPC server settings (for internal communication)
+      grpc_listen_port: 9095
+      grpc_listen_address: 0.0.0.0
+      
+      # Graceful shutdown timeout
+      graceful_shutdown_timeout: 30s
+      
+      # HTTP server timeouts
+      http_server_read_timeout: 30s
+      http_server_write_timeout: 30s
+      http_server_idle_timeout: 120s
+      
+      # Log level: debug, info, warn, error
+      log_level: info
+      
+      # Log format: logfmt, json
+      log_format: json
+    
+    # ==========================================================================
+    # Common Configuration
+    # ==========================================================================
+    common:
+      # Instance address for ring membership
+      instance_addr: 0.0.0.0
+      
+      # Path prefix for all data storage
+      path_prefix: /loki
+      
+      # Storage configuration
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      
+      # Replication factor (1 for single instance)
+      replication_factor: 1
+      
+      # Ring configuration for distributed mode
+      ring:
+        kvstore:
+          store: inmemory
+    
+    # ==========================================================================
+    # Query Range Configuration
+    # ==========================================================================
+    query_range:
+      # Enable result caching
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100
+    
+    # ==========================================================================
+    # Schema Configuration
+    # ==========================================================================
+    # Defines how logs are indexed and stored over time
+    # IMPORTANT: Schema changes require careful migration planning
+    schema_config:
+      configs:
+        # Schema version starting from specific date
+        - from: 2024-01-01
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    
+    # ==========================================================================
+    # Ruler Configuration
+    # ==========================================================================
+    # Loki ruler evaluates LogQL queries for alerting
+    ruler:
+      # Directory for rule files
+      storage:
+        type: local
+        local:
+          directory: /loki/rules
+      
+      # Rule evaluation interval
+      evaluation_interval: 1m
+      
+      # Alertmanager configuration
+      alertmanager_url: http://alertmanager:9093
+      
+      # Enable ruler API
+      enable_api: true
+    
+    # ==========================================================================
+    # Ingester Configuration
+    # ==========================================================================
+    # Ingesters receive log entries and build chunks
+    ingester:
+      # Lifecycle configuration
+      lifecycler:
+        # Address to advertise in the ring
+        address: 127.0.0.1
+        
+        # Ring configuration
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+        
+        # Time to wait before joining the ring
+        join_after: 0s
+        
+        # Minimum time to wait before becoming ready
+        min_ready_duration: 0s
+        
+        # Time to wait before marking as unhealthy
+        final_sleep: 0s
+      
+      # Chunk configuration
+      # Chunks are compressed blocks of log entries
+      chunk_idle_period: 1h
+      max_chunk_age: 1h
+      chunk_target_size: 1048576  # 1MB
+      chunk_retain_period: 30s
+      
+      # WAL (Write-Ahead Log) configuration
+      # WAL provides durability for in-memory data
+      wal:
+        enabled: true
+        dir: /loki/wal
+        # Flush WAL on shutdown
+        flush_on_shutdown: true
+        # Replay memory ceiling
+        replay_memory_ceiling: 1GB
+    
+    # ==========================================================================
+    # Limits Configuration
+    # ==========================================================================
+    # Rate limiting and resource constraints
+    limits_config:
+      # Reject old samples (prevents backfilling)
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h  # 7 days
+      
+      # Maximum label name length
+      max_label_name_length: 1024
+      
+      # Maximum label value length
+      max_label_value_length: 2048
+      
+      # Maximum number of label names per series
+      max_label_names_per_series: 30
+      
+      # Ingestion rate limits (per tenant)
+      ingestion_rate_mb: 10
+      ingestion_burst_size_mb: 20
+      
+      # Per-stream rate limits
+      per_stream_rate_limit: 3MB
+      per_stream_rate_limit_burst: 15MB
+      
+      # Query limits
+      max_entries_limit_per_query: 5000
+      max_query_series: 500
+      max_query_parallelism: 32
+      
+      # Retention period (0 = infinite)
+      retention_period: 744h  # 31 days
+      
+      # Split queries by interval for better performance
+      split_queries_by_interval: 15m
+    
+    # ==========================================================================
+    # Chunk Store Configuration
+    # ==========================================================================
+    chunk_store_config:
+      # Maximum look-back period for queries
+      max_look_back_period: 0s
+    
+    # ==========================================================================
+    # Table Manager Configuration
+    # ==========================================================================
+    table_manager:
+      # Retention configuration
+      retention_deletes_enabled: true
+      retention_period: 744h  # 31 days
+    
+    # ==========================================================================
+    # Compactor Configuration
+    # ==========================================================================
+    # Compactor merges and deduplicates index files
+    compactor:
+      working_directory: /loki/compactor
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+      delete_request_store: filesystem
+    
+    # ==========================================================================
+    # Analytics Configuration
+    # ==========================================================================
+    analytics:
+      # Disable usage reporting
+      reporting_enabled: false
+
+---
+# =============================================================================
+# StatefulSet: Loki
+# =============================================================================
+# StatefulSets are the workload API object for managing stateful applications.
+#
+# Key Differences from Deployments:
+# 1. Stable, unique pod names (loki-0, loki-1, etc.)
+# 2. Stable network identities via headless service
+# 3. Ordered deployment (0 before 1 before 2)
+# 4. Ordered termination (reverse order)
+# 5. Persistent storage that follows the pod
+#
+# When to Use StatefulSet:
+# - Databases (PostgreSQL, MySQL, MongoDB)
+# - Message queues (Kafka, RabbitMQ)
+# - Log aggregators (Loki, Elasticsearch)
+# - Any application requiring stable storage identity
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: monitoring
+  labels:
+    app: loki
+    component: server
+spec:
+  # Service name for network identity
+  # Must match the headless service name
+  serviceName: loki-headless
+  
+  # Number of replicas
+  # For HA, increase replicas and configure ring membership
+  replicas: 1
+  
+  # Pod management policy
+  # OrderedReady: Pods are created in order (default)
+  # Parallel: All pods are created simultaneously
+  podManagementPolicy: OrderedReady
+  
+  # Update strategy
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Maximum unavailable pods during update
+      # For StatefulSets, this is the partition value
+      partition: 0
+  
+  # Selector must match template labels
+  selector:
+    matchLabels:
+      app: loki
+      component: server
+  
+  # Pod template
+  template:
+    metadata:
+      labels:
+        app: loki
+        component: server
+      annotations:
+        # Prometheus scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3100"
+        prometheus.io/path: "/metrics"
+    
+    spec:
+      # Service account
+      serviceAccountName: loki
+      
+      # Security context (pod level)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: "OnRootMismatch"
+      
+      # Termination grace period
+      # Allow time for graceful shutdown and WAL flush
+      terminationGracePeriodSeconds: 300
+      
+      # Init containers
+      initContainers:
+        # Ensure data directories exist with correct permissions
+        - name: init-directories
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /loki/chunks /loki/rules /loki/wal /loki/compactor
+              chown -R 10001:10001 /loki
+          volumeMounts:
+            - name: data
+              mountPath: /loki
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+      
+      containers:
+        - name: loki
+          image: grafana/loki:2.9.0
+          imagePullPolicy: IfNotPresent
+          
+          # Arguments
+          args:
+            - -config.file=/etc/loki/loki.yaml
+            - -target=all
+          
+          # Ports
+          ports:
+            # HTTP API port
+            - name: http
+              containerPort: 3100
+              protocol: TCP
+            # gRPC port (for internal communication)
+            - name: grpc
+              containerPort: 9095
+              protocol: TCP
+          
+          # Environment variables
+          env:
+            # Pod name for ring membership
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          
+          # =================================================================
+          # Resource Configuration
+          # =================================================================
+          # Loki resource requirements depend on:
+          # - Log ingestion rate
+          # - Query complexity and frequency
+          # - Retention period
+          # - Number of tenants
+          #
+          # Start conservative and scale based on metrics
+          # =================================================================
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          
+          # =================================================================
+          # Liveness Probe
+          # =================================================================
+          # Checks if Loki is running
+          # Uses the /ready endpoint which checks all components
+          # =================================================================
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            # Loki can take time to start, especially with large WAL
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          # =================================================================
+          # Readiness Probe
+          # =================================================================
+          # Checks if Loki is ready to receive traffic
+          # More sensitive than liveness probe
+          # =================================================================
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          
+          # =================================================================
+          # Startup Probe
+          # =================================================================
+          # Allows longer startup time without affecting liveness
+          # Important for WAL replay on restart
+          # =================================================================
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: http
+            # Allow up to 10 minutes for startup (60 * 10s)
+            failureThreshold: 60
+            periodSeconds: 10
+          
+          # Security context (container level)
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          
+          # Volume mounts
+          volumeMounts:
+            # Persistent data volume
+            - name: data
+              mountPath: /loki
+            
+            # Configuration file
+            - name: config
+              mountPath: /etc/loki/loki.yaml
+              subPath: loki.yaml
+              readOnly: true
+            
+            # Temporary directory
+            - name: tmp
+              mountPath: /tmp
+      
+      # Volumes (non-persistent)
+      volumes:
+        # Configuration from ConfigMap
+        - name: config
+          configMap:
+            name: loki-config
+        
+        # Temporary directory
+        - name: tmp
+          emptyDir: {}
+      
+      # Affinity rules
+      affinity:
+        # Spread pods across nodes for HA
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: loki
+                topologyKey: kubernetes.io/hostname
+        
+        # Prefer nodes with SSD storage
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: node.kubernetes.io/instance-type
+                    operator: In
+                    values:
+                      - m5d.large
+                      - m5d.xlarge
+      
+      # Tolerations
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+  
+  # ===========================================================================
+  # Volume Claim Templates
+  # ===========================================================================
+  # VolumeClaimTemplates create PVCs for each pod in the StatefulSet.
+  # Each pod gets its own PVC that persists across restarts.
+  #
+  # Key Benefits:
+  # 1. Data survives pod restarts and rescheduling
+  # 2. Each pod has dedicated storage
+  # 3. PVCs are automatically created and managed
+  # 4. Storage follows the pod identity (loki-0 always gets loki-data-loki-0)
+  #
+  # Storage Sizing Considerations for Loki:
+  # - Ingestion rate (GB/day)
+  # - Retention period
+  # - Compression ratio (~10x for logs)
+  # - Index size (~1-2% of chunk size)
+  #
+  # Example: 10GB/day * 31 days / 10 compression = ~31GB chunks + ~1GB index
+  # ===========================================================================
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app: loki
+          component: storage
+      spec:
+        accessModes:
+          # ReadWriteOnce - single node access
+          - ReadWriteOnce
+        
+        # Storage class
+        # Use appropriate class for your environment:
+        # - standard: Default, usually HDD
+        # - gp3 (AWS): General purpose SSD
+        # - pd-ssd (GCP): SSD persistent disk
+        # - managed-premium (Azure): Premium SSD
+        storageClassName: standard
+        
+        resources:
+          requests:
+            # Size based on retention and ingestion rate
+            # Start with estimate and monitor usage
+            storage: 50Gi
+
+---
+# =============================================================================
+# Headless Service: Loki
+# =============================================================================
+# Headless services (clusterIP: None) provide stable network identities
+# for StatefulSet pods without load balancing.
+#
+# DNS Records Created:
+# - loki-headless.monitoring.svc.cluster.local (service)
+# - loki-0.loki-headless.monitoring.svc.cluster.local (pod)
+# - loki-1.loki-headless.monitoring.svc.cluster.local (pod)
+#
+# Use Cases:
+# - Direct pod-to-pod communication
+# - Client-side load balancing
+# - Service discovery for distributed systems
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki-headless
+  namespace: monitoring
+  labels:
+    app: loki
+    component: headless-service
+spec:
+  # Headless service - no cluster IP
+  clusterIP: None
+  
+  # Selector matches StatefulSet pods
+  selector:
+    app: loki
+    component: server
+  
+  ports:
+    - name: http
+      port: 3100
+      targetPort: http
+      protocol: TCP
+    - name: grpc
+      port: 9095
+      targetPort: grpc
+      protocol: TCP
+
+---
+# =============================================================================
+# Service: Loki (ClusterIP)
+# =============================================================================
+# Regular ClusterIP service for load-balanced access to Loki
+# Use this for client connections (Grafana, Promtail, etc.)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: monitoring
+  labels:
+    app: loki
+    component: service
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: loki
+    component: server
+  
+  ports:
+    - name: http
+      port: 3100
+      targetPort: http
+      protocol: TCP
+
+---
+# =============================================================================
+# ServiceAccount: Loki
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki
+  namespace: monitoring
+  labels:
+    app: loki
+
+---
+# =============================================================================
+# PodDisruptionBudget: Loki
+# =============================================================================
+# PDBs ensure minimum availability during voluntary disruptions
+# (node drains, cluster upgrades, etc.)
+#
+# Important for production deployments to prevent data loss
+# =============================================================================
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: loki-pdb
+  namespace: monitoring
+  labels:
+    app: loki
+spec:
+  # Minimum available pods during disruption
+  # For single replica, use maxUnavailable: 0 to prevent disruption
+  # For multiple replicas, use minAvailable or maxUnavailable
+  minAvailable: 0
+  
+  selector:
+    matchLabels:
+      app: loki
+      component: server

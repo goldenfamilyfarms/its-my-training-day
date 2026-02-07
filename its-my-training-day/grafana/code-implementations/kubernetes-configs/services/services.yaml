@@ -1,0 +1,610 @@
+# =============================================================================
+# Kubernetes Services - Comprehensive Examples
+# =============================================================================
+#
+# This manifest demonstrates different Kubernetes Service types for exposing
+# observability applications. Services provide stable network endpoints for
+# accessing pods, enabling service discovery and load balancing.
+#
+# Service Types Covered:
+# 1. ClusterIP - Internal cluster access (default)
+# 2. LoadBalancer - External access via cloud load balancer
+# 3. NodePort - External access via node ports (not recommended for production)
+# 4. ExternalName - DNS alias for external services
+#
+# Best Practices Demonstrated:
+# 1. Proper label selectors for pod targeting
+# 2. Named ports for clarity and reference
+# 3. Session affinity for stateful connections
+# 4. Health check configurations
+# 5. Annotations for cloud provider integration
+#
+# Usage:
+#   kubectl apply -f services.yaml -n monitoring
+#
+# =============================================================================
+
+---
+# =============================================================================
+# ClusterIP Service: Grafana (Internal Access)
+# =============================================================================
+# ClusterIP is the default service type, providing internal cluster access.
+# Pods within the cluster can reach this service via:
+# - Service name: grafana
+# - FQDN: grafana.monitoring.svc.cluster.local
+# - Cluster IP: Assigned by Kubernetes
+#
+# Use Cases:
+# - Internal microservice communication
+# - Backend services not exposed externally
+# - Services accessed via Ingress
+# - Database connections
+#
+# Key Benefits:
+# - Stable internal IP address
+# - DNS-based service discovery
+# - Load balancing across pods
+# - No external exposure (security)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: service
+    # Service tier for organization
+    tier: frontend
+  annotations:
+    # Documentation annotations
+    description: "Internal ClusterIP service for Grafana dashboard access"
+    # Prometheus service discovery
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+    prometheus.io/path: "/metrics"
+spec:
+  # ClusterIP is the default type
+  type: ClusterIP
+  
+  # Selector determines which pods receive traffic
+  # Must match labels on target pods
+  selector:
+    app: grafana
+    component: server
+  
+  # Port configuration
+  ports:
+    # HTTP port for web UI and API
+    - name: http
+      # Port exposed by the service
+      port: 3000
+      # Port on the target pod
+      targetPort: http
+      # Protocol (TCP is default)
+      protocol: TCP
+  
+  # Session affinity
+  # None: Load balance across all pods (default)
+  # ClientIP: Route same client to same pod
+  sessionAffinity: None
+  
+  # Session affinity configuration (when using ClientIP)
+  # sessionAffinityConfig:
+  #   clientIP:
+  #     timeoutSeconds: 10800  # 3 hours
+
+---
+# =============================================================================
+# ClusterIP Service: Prometheus (Internal Access)
+# =============================================================================
+# Internal service for Prometheus metrics server
+# Grafana and other services connect to this for metrics queries
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: service
+    tier: backend
+  annotations:
+    description: "Internal service for Prometheus metrics server"
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: prometheus
+    component: server
+  
+  ports:
+    # HTTP port for web UI and API
+    - name: http
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+# =============================================================================
+# ClusterIP Service: Loki (Internal Access)
+# =============================================================================
+# Internal service for Loki log aggregation
+# Promtail and Grafana connect to this for log ingestion and queries
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: monitoring
+  labels:
+    app: loki
+    component: service
+    tier: backend
+  annotations:
+    description: "Internal service for Loki log aggregation"
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: loki
+    component: server
+  
+  ports:
+    # HTTP port for API and queries
+    - name: http
+      port: 3100
+      targetPort: 3100
+      protocol: TCP
+    # gRPC port for internal communication
+    - name: grpc
+      port: 9095
+      targetPort: 9095
+      protocol: TCP
+
+---
+# =============================================================================
+# ClusterIP Service: Tempo (Internal Access)
+# =============================================================================
+# Internal service for Tempo distributed tracing
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: monitoring
+  labels:
+    app: tempo
+    component: service
+    tier: backend
+  annotations:
+    description: "Internal service for Tempo distributed tracing"
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: tempo
+    component: server
+  
+  ports:
+    # HTTP port for API
+    - name: http
+      port: 3200
+      targetPort: 3200
+      protocol: TCP
+    # OTLP gRPC port for trace ingestion
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    # OTLP HTTP port for trace ingestion
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    # Jaeger thrift compact (legacy)
+    - name: jaeger-thrift
+      port: 6831
+      targetPort: 6831
+      protocol: UDP
+
+---
+# =============================================================================
+# ClusterIP Service: Alertmanager (Internal Access)
+# =============================================================================
+# Internal service for Alertmanager
+# Prometheus sends alerts to this service
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+    component: service
+    tier: backend
+  annotations:
+    description: "Internal service for Alertmanager"
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: alertmanager
+    component: server
+  
+  ports:
+    - name: http
+      port: 9093
+      targetPort: 9093
+      protocol: TCP
+    # Cluster port for HA communication
+    - name: cluster
+      port: 9094
+      targetPort: 9094
+      protocol: TCP
+
+---
+# =============================================================================
+# LoadBalancer Service: Grafana (External Access)
+# =============================================================================
+# LoadBalancer services provision external load balancers in cloud environments.
+# The cloud provider creates and manages the load balancer automatically.
+#
+# Cloud Provider Behavior:
+# - AWS: Creates an ELB/ALB/NLB
+# - GCP: Creates a Network Load Balancer
+# - Azure: Creates an Azure Load Balancer
+# - On-premises: Requires MetalLB or similar
+#
+# Use Cases:
+# - Direct external access to services
+# - When Ingress is not available or suitable
+# - TCP/UDP services (non-HTTP)
+# - Simple external exposure without path routing
+#
+# Considerations:
+# - Each LoadBalancer service gets its own external IP (cost)
+# - Limited to L4 load balancing (no path-based routing)
+# - Cloud provider specific annotations for customization
+# - Consider Ingress for HTTP services (more cost-effective)
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-external
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: external-service
+    tier: frontend
+  annotations:
+    description: "External LoadBalancer service for Grafana access"
+    
+    # ==========================================================================
+    # AWS-specific annotations (ELB/NLB)
+    # ==========================================================================
+    # Use Network Load Balancer (NLB) instead of Classic ELB
+    # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    
+    # Use internal load balancer (no public IP)
+    # service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    
+    # SSL/TLS termination at load balancer
+    # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:..."
+    # service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+    
+    # Health check configuration
+    # service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/api/health"
+    # service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"
+    
+    # Cross-zone load balancing
+    # service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    
+    # ==========================================================================
+    # GCP-specific annotations
+    # ==========================================================================
+    # Use internal load balancer
+    # cloud.google.com/load-balancer-type: "Internal"
+    
+    # Network tier (PREMIUM or STANDARD)
+    # cloud.google.com/network-tier: "Premium"
+    
+    # ==========================================================================
+    # Azure-specific annotations
+    # ==========================================================================
+    # Use internal load balancer
+    # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    
+    # Resource group for load balancer
+    # service.beta.kubernetes.io/azure-load-balancer-resource-group: "my-rg"
+spec:
+  type: LoadBalancer
+  
+  # Selector for target pods
+  selector:
+    app: grafana
+    component: server
+  
+  ports:
+    # HTTP port
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+    # HTTPS port (if terminating TLS at service level)
+    - name: https
+      port: 443
+      targetPort: http
+      protocol: TCP
+  
+  # External traffic policy
+  # Cluster: Load balance across all nodes (default)
+  # Local: Only route to pods on the receiving node (preserves client IP)
+  externalTrafficPolicy: Cluster
+  
+  # Health check node port (when externalTrafficPolicy: Local)
+  # healthCheckNodePort: 30000
+  
+  # Load balancer IP (request specific IP if supported)
+  # loadBalancerIP: "203.0.113.10"
+  
+  # Restrict source IPs (firewall rules)
+  # loadBalancerSourceRanges:
+  #   - "10.0.0.0/8"
+  #   - "192.168.0.0/16"
+  
+  # Session affinity for sticky sessions
+  sessionAffinity: None
+
+---
+# =============================================================================
+# NodePort Service: Grafana (Development/Testing)
+# =============================================================================
+# NodePort services expose the service on each node's IP at a static port.
+# Accessible via <NodeIP>:<NodePort> from outside the cluster.
+#
+# Port Range: 30000-32767 (configurable in kube-apiserver)
+#
+# Use Cases:
+# - Development and testing environments
+# - On-premises clusters without LoadBalancer support
+# - Quick external access without cloud integration
+#
+# NOT Recommended for Production Because:
+# - Exposes ports on all nodes (security concern)
+# - Limited port range
+# - No built-in load balancing across nodes
+# - Requires knowing node IPs
+# - Node failures affect availability
+#
+# For production, use LoadBalancer or Ingress instead.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-nodeport
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: nodeport-service
+    environment: development
+  annotations:
+    description: "NodePort service for development access to Grafana"
+spec:
+  type: NodePort
+  
+  selector:
+    app: grafana
+    component: server
+  
+  ports:
+    - name: http
+      # Service port (internal)
+      port: 3000
+      # Pod port
+      targetPort: http
+      # Node port (external) - optional, auto-assigned if not specified
+      nodePort: 30300
+      protocol: TCP
+  
+  # External traffic policy
+  externalTrafficPolicy: Cluster
+
+---
+# =============================================================================
+# ExternalName Service: External Database
+# =============================================================================
+# ExternalName services create a DNS alias for external services.
+# No proxying occurs - just DNS CNAME resolution.
+#
+# Use Cases:
+# - Accessing external databases (RDS, Cloud SQL)
+# - Integrating with external APIs
+# - Migrating services gradually
+# - Environment-specific external endpoints
+#
+# How It Works:
+# 1. Pod queries: external-db.monitoring.svc.cluster.local
+# 2. CoreDNS returns CNAME: mydb.us-east-1.rds.amazonaws.com
+# 3. Pod connects directly to external service
+#
+# Limitations:
+# - No port remapping
+# - No load balancing
+# - No health checking
+# - DNS resolution only
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+  namespace: monitoring
+  labels:
+    app: external-db
+    component: external-service
+  annotations:
+    description: "ExternalName service for external database access"
+spec:
+  type: ExternalName
+  
+  # External DNS name to resolve to
+  # Replace with your actual external service hostname
+  externalName: mydb.us-east-1.rds.amazonaws.com
+  
+  # Note: No selector, ports, or clusterIP for ExternalName services
+
+---
+# =============================================================================
+# Headless Service: Prometheus (StatefulSet Discovery)
+# =============================================================================
+# Headless services (clusterIP: None) provide direct pod access without
+# load balancing. Used primarily with StatefulSets for:
+# - Stable network identities
+# - Direct pod-to-pod communication
+# - Client-side load balancing
+#
+# DNS Records:
+# - prometheus-headless.monitoring.svc.cluster.local -> All pod IPs
+# - prometheus-0.prometheus-headless.monitoring.svc.cluster.local -> Pod 0 IP
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-headless
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: headless-service
+  annotations:
+    description: "Headless service for Prometheus StatefulSet discovery"
+spec:
+  # Headless service - no cluster IP assigned
+  clusterIP: None
+  
+  selector:
+    app: prometheus
+    component: server
+  
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  
+  # Publish not-ready addresses for StatefulSet
+  # Allows DNS resolution before pods are ready
+  publishNotReadyAddresses: true
+
+---
+# =============================================================================
+# Multi-Port Service: OTEL Collector
+# =============================================================================
+# Services can expose multiple ports for applications that serve
+# different protocols or functions on different ports.
+#
+# OpenTelemetry Collector Example:
+# - Receives traces, metrics, and logs on various ports
+# - Exports to multiple backends
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: monitoring
+  labels:
+    app: otel-collector
+    component: service
+  annotations:
+    description: "Multi-port service for OpenTelemetry Collector"
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: otel-collector
+    component: server
+  
+  ports:
+    # OTLP gRPC receiver
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    
+    # OTLP HTTP receiver
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    
+    # Prometheus metrics (for scraping collector metrics)
+    - name: metrics
+      port: 8888
+      targetPort: 8888
+      protocol: TCP
+    
+    # Health check endpoint
+    - name: health
+      port: 13133
+      targetPort: 13133
+      protocol: TCP
+    
+    # Jaeger thrift receiver (legacy)
+    - name: jaeger-thrift
+      port: 14268
+      targetPort: 14268
+      protocol: TCP
+    
+    # Zipkin receiver
+    - name: zipkin
+      port: 9411
+      targetPort: 9411
+      protocol: TCP
+
+---
+# =============================================================================
+# Service with Session Affinity: Stateful Application
+# =============================================================================
+# Session affinity ensures requests from the same client go to the same pod.
+# Useful for applications that maintain client state in memory.
+#
+# Affinity Types:
+# - None: Round-robin load balancing (default)
+# - ClientIP: Route based on client IP address
+#
+# Note: For true session management, consider using Ingress with
+# cookie-based affinity or application-level session stores (Redis).
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: stateful-app
+  namespace: monitoring
+  labels:
+    app: stateful-app
+    component: service
+  annotations:
+    description: "Service with session affinity for stateful application"
+spec:
+  type: ClusterIP
+  
+  selector:
+    app: stateful-app
+    component: server
+  
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  
+  # Enable client IP-based session affinity
+  sessionAffinity: ClientIP
+  
+  # Session affinity configuration
+  sessionAffinityConfig:
+    clientIP:
+      # Timeout for session affinity (default: 10800 = 3 hours)
+      # After this time, client may be routed to different pod
+      timeoutSeconds: 3600  # 1 hour

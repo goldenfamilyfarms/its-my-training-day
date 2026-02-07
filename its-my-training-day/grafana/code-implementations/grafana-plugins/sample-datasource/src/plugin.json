@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "Sample Data Source",
+  "id": "sample-datasource",
+  "info": {
+    "description": "A sample data source plugin demonstrating Grafana plugin development patterns",
+    "author": {
+      "name": "Grafana Interview Prep",
+      "url": "https://github.com/grafana"
+    },
+    "keywords": [
+      "datasource",
+      "sample",
+      "tutorial",
+      "interview-prep"
+    ],
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "Documentation",
+        "url": "https://grafana.com/developers/plugin-tools/"
+      },
+      {
+        "name": "GitHub",
+        "url": "https://github.com/grafana/grafana-plugin-examples"
+      }
+    ],
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2024-01-01"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.0.0",
+    "plugins": []
+  },
+  "includes": [],
+  "backend": true,
+  "executable": "gpx_sample-datasource",
+  "alerting": true,
+  "annotations": true,
+  "logs": false,
+  "metrics": true,
+  "tracing": false,
+  "streaming": false,
+  "queryOptions": {
+    "maxDataPoints": true,
+    "minInterval": true,
+    "cacheTimeout": true
+  },
+  "routes": [
+    {
+      "path": "api/*",
+      "url": "{{ .JsonData.url }}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "content": "Bearer {{ .SecureJsonData.apiKey }}"
+        }
+      ]
+    }
+  ]
+}
