@@ -1,0 +1,687 @@
+# =============================================================================
+# Kubernetes Ingress - Comprehensive Examples
+# =============================================================================
+#
+# Ingress exposes HTTP and HTTPS routes from outside the cluster to services
+# within the cluster. Traffic routing is controlled by rules defined on the
+# Ingress resource.
+#
+# Key Concepts:
+# - Ingress Controller: The component that implements Ingress rules
+#   (NGINX, Traefik, HAProxy, AWS ALB, GCP GCLB, etc.)
+# - Ingress Resource: The configuration that defines routing rules
+# - IngressClass: Specifies which controller handles the Ingress
+#
+# Best Practices Demonstrated:
+# 1. TLS termination for secure connections
+# 2. Path-based routing for multiple services
+# 3. Host-based routing for multi-tenant setups
+# 4. Annotations for controller-specific features
+# 5. Rate limiting and security headers
+#
+# Prerequisites:
+# - Ingress Controller installed (e.g., ingress-nginx)
+# - TLS certificates (cert-manager recommended)
+# - DNS configured for hostnames
+#
+# Usage:
+#   kubectl apply -f ingress.yaml -n monitoring
+#
+# =============================================================================
+
+---
+# =============================================================================
+# IngressClass: NGINX
+# =============================================================================
+# IngressClass specifies which Ingress controller should handle Ingress
+# resources. Multiple controllers can coexist in a cluster.
+#
+# Common Ingress Controllers:
+# - ingress-nginx: NGINX-based, most popular
+# - traefik: Cloud-native, automatic HTTPS
+# - haproxy: High-performance, enterprise features
+# - aws-load-balancer-controller: AWS ALB/NLB integration
+# - gce: Google Cloud Load Balancer
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+  labels:
+    app.kubernetes.io/component: controller
+  annotations:
+    # Set as default IngressClass (optional)
+    # ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  # Controller that implements this IngressClass
+  controller: k8s.io/ingress-nginx
+  
+  # Parameters for controller configuration (optional)
+  # parameters:
+  #   apiGroup: k8s.nginx.org
+  #   kind: IngressParameters
+  #   name: nginx-params
+
+---
+# =============================================================================
+# TLS Secret: Grafana Certificate
+# =============================================================================
+# TLS secrets store certificates for HTTPS termination.
+# In production, use cert-manager for automatic certificate management.
+#
+# Creating TLS Secret:
+#   kubectl create secret tls grafana-tls \
+#     --cert=path/to/tls.crt \
+#     --key=path/to/tls.key \
+#     -n monitoring
+#
+# With cert-manager, certificates are automatically created and renewed.
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-tls
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: tls
+type: kubernetes.io/tls
+# Example self-signed certificate (DO NOT USE IN PRODUCTION)
+# Generate with: openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#   -keyout tls.key -out tls.crt -subj "/CN=grafana.example.com"
+data:
+  # Base64 encoded certificate
+  tls.crt: |
+    LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMrekNDQWVPZ0F3SUJBZ0lKQUxETk
+    ... (base64 encoded certificate)
+  # Base64 encoded private key
+  tls.key: |
+    LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQk
+    ... (base64 encoded key)
+
+---
+# =============================================================================
+# Ingress: Grafana (Basic Example)
+# =============================================================================
+# Basic Ingress configuration for Grafana with TLS termination.
+# Routes all traffic for grafana.example.com to the Grafana service.
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: ingress
+  annotations:
+    # ==========================================================================
+    # General Annotations
+    # ==========================================================================
+    description: "Ingress for Grafana dashboard access"
+    
+    # ==========================================================================
+    # NGINX Ingress Controller Annotations
+    # ==========================================================================
+    # These annotations are specific to ingress-nginx controller
+    # Other controllers have different annotation formats
+    
+    # SSL/TLS Configuration
+    # ---------------------
+    # Force HTTPS redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Use specific SSL protocols
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    
+    # SSL ciphers (use secure defaults)
+    # nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-RSA-AES128-GCM-SHA256:..."
+    
+    # Backend Protocol
+    # ----------------
+    # Protocol to use when connecting to backend (HTTP, HTTPS, GRPC, GRPCS)
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    
+    # Proxy Configuration
+    # -------------------
+    # Proxy body size (for large dashboard uploads)
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    
+    # Proxy timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    
+    # WebSocket support (required for Grafana Live)
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    
+    # Security Headers
+    # ----------------
+    # Add security headers to responses
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    
+    # Rate Limiting
+    # -------------
+    # Limit requests per second from single IP
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    
+    # Limit connections per IP
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    
+    # Whitelist source IPs (optional)
+    # nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16"
+    
+    # ==========================================================================
+    # cert-manager Annotations (for automatic TLS)
+    # ==========================================================================
+    # Uncomment to use cert-manager for automatic certificate management
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # cert-manager.io/issuer: "letsencrypt-staging"
+spec:
+  # Ingress class to use
+  ingressClassName: nginx
+  
+  # TLS configuration
+  tls:
+    - hosts:
+        - grafana.example.com
+      # Secret containing TLS certificate
+      secretName: grafana-tls
+  
+  # Routing rules
+  rules:
+    - host: grafana.example.com
+      http:
+        paths:
+          # Route all traffic to Grafana service
+          - path: /
+            # PathType options:
+            # - Prefix: Matches based on URL path prefix (/)
+            # - Exact: Matches exact path only
+            # - ImplementationSpecific: Controller-dependent
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  # Can use port name or number
+                  name: http
+
+---
+# =============================================================================
+# Ingress: Observability Stack (Path-Based Routing)
+# =============================================================================
+# Path-based routing allows multiple services to share a single hostname.
+# Useful for consolidating observability tools under one domain.
+#
+# Routes:
+# - /grafana/* -> Grafana service
+# - /prometheus/* -> Prometheus service
+# - /alertmanager/* -> Alertmanager service
+# - /loki/* -> Loki service
+#
+# Note: Applications must be configured to handle the path prefix
+# (e.g., Grafana's root_url, Prometheus's --web.external-url)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: observability-stack
+  namespace: monitoring
+  labels:
+    app: observability
+    component: ingress
+  annotations:
+    description: "Path-based routing for observability stack"
+    
+    # Rewrite target for path stripping
+    # Removes the path prefix before forwarding to backend
+    # /grafana/api/health -> /api/health
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    
+    # Use regex in path matching
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    
+    # SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Proxy settings
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  ingressClassName: nginx
+  
+  tls:
+    - hosts:
+        - observability.example.com
+      secretName: observability-tls
+  
+  rules:
+    - host: observability.example.com
+      http:
+        paths:
+          # Grafana - Dashboard and visualization
+          # Access: https://observability.example.com/grafana/
+          - path: /grafana(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+          
+          # Prometheus - Metrics and alerting
+          # Access: https://observability.example.com/prometheus/
+          - path: /prometheus(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090
+          
+          # Alertmanager - Alert management
+          # Access: https://observability.example.com/alertmanager/
+          - path: /alertmanager(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: alertmanager
+                port:
+                  number: 9093
+          
+          # Loki - Log aggregation (API only, no UI)
+          # Access: https://observability.example.com/loki/
+          - path: /loki(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: loki
+                port:
+                  number: 3100
+
+---
+# =============================================================================
+# Ingress: Multi-Host (Host-Based Routing)
+# =============================================================================
+# Host-based routing directs traffic based on the hostname.
+# Each service gets its own subdomain for cleaner URLs.
+#
+# Routes:
+# - grafana.example.com -> Grafana service
+# - prometheus.example.com -> Prometheus service
+# - loki.example.com -> Loki service
+#
+# Requires:
+# - DNS records for each hostname
+# - TLS certificates for each hostname (or wildcard)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: observability-multi-host
+  namespace: monitoring
+  labels:
+    app: observability
+    component: ingress-multi-host
+  annotations:
+    description: "Host-based routing for observability services"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Use wildcard certificate
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  
+  # TLS with wildcard certificate
+  tls:
+    - hosts:
+        - grafana.example.com
+        - prometheus.example.com
+        - loki.example.com
+        - alertmanager.example.com
+      # Wildcard certificate covers all subdomains
+      secretName: wildcard-example-com-tls
+  
+  rules:
+    # Grafana
+    - host: grafana.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+    
+    # Prometheus
+    - host: prometheus.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090
+    
+    # Loki
+    - host: loki.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: loki
+                port:
+                  number: 3100
+    
+    # Alertmanager
+    - host: alertmanager.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: alertmanager
+                port:
+                  number: 9093
+
+---
+# =============================================================================
+# Ingress: Authentication with OAuth2 Proxy
+# =============================================================================
+# Protect services with OAuth2 authentication using oauth2-proxy.
+# Users must authenticate before accessing the service.
+#
+# Flow:
+# 1. User accesses grafana.example.com
+# 2. Ingress redirects to oauth2-proxy for authentication
+# 3. oauth2-proxy redirects to identity provider (Google, GitHub, etc.)
+# 4. After authentication, user is redirected back to Grafana
+#
+# Prerequisites:
+# - oauth2-proxy deployed in cluster
+# - OAuth2 application configured with identity provider
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-oauth
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: ingress-oauth
+  annotations:
+    description: "Grafana with OAuth2 authentication"
+    
+    # OAuth2 Proxy annotations
+    # URL of oauth2-proxy authentication endpoint
+    nginx.ingress.kubernetes.io/auth-url: "https://oauth2.example.com/oauth2/auth"
+    
+    # URL to redirect for authentication
+    nginx.ingress.kubernetes.io/auth-signin: "https://oauth2.example.com/oauth2/start?rd=$scheme://$host$escaped_request_uri"
+    
+    # Headers to pass from oauth2-proxy to backend
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User, X-Auth-Request-Email, X-Auth-Request-Groups"
+    
+    # SSL redirect
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  
+  tls:
+    - hosts:
+        - grafana-secure.example.com
+      secretName: grafana-secure-tls
+  
+  rules:
+    - host: grafana-secure.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+
+---
+# =============================================================================
+# Ingress: Rate Limiting and IP Whitelisting
+# =============================================================================
+# Security-focused Ingress with rate limiting and IP restrictions.
+# Useful for protecting sensitive endpoints or APIs.
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-secure
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: ingress-secure
+  annotations:
+    description: "Grafana with enhanced security controls"
+    
+    # Rate Limiting
+    # -------------
+    # Requests per second per IP
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    
+    # Connections per IP
+    nginx.ingress.kubernetes.io/limit-connections: "5"
+    
+    # Rate limit window (default: 1s)
+    nginx.ingress.kubernetes.io/limit-rate: "100"
+    
+    # Burst size for rate limiting
+    nginx.ingress.kubernetes.io/limit-rate-after: "1m"
+    
+    # IP Whitelisting
+    # ---------------
+    # Only allow traffic from specific IP ranges
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12"
+    
+    # Custom error pages for blocked requests
+    # nginx.ingress.kubernetes.io/custom-http-errors: "403,404,500,502,503,504"
+    # nginx.ingress.kubernetes.io/default-backend: "error-pages"
+    
+    # Security Headers
+    # ----------------
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      # Strict Transport Security
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      
+      # Content Security Policy
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" always;
+      
+      # Prevent clickjacking
+      add_header X-Frame-Options "DENY" always;
+      
+      # Prevent MIME type sniffing
+      add_header X-Content-Type-Options "nosniff" always;
+      
+      # XSS Protection
+      add_header X-XSS-Protection "1; mode=block" always;
+    
+    # SSL Configuration
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  
+  tls:
+    - hosts:
+        - grafana-internal.example.com
+      secretName: grafana-internal-tls
+  
+  rules:
+    - host: grafana-internal.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+
+---
+# =============================================================================
+# Ingress: Canary Deployment
+# =============================================================================
+# Canary Ingress routes a percentage of traffic to a new version.
+# Useful for gradual rollouts and A/B testing.
+#
+# Traffic Split:
+# - 90% -> grafana (stable)
+# - 10% -> grafana-canary (new version)
+#
+# Canary can be based on:
+# - Weight (percentage of traffic)
+# - Header (specific header value)
+# - Cookie (specific cookie value)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-canary
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: ingress-canary
+    version: canary
+  annotations:
+    description: "Canary deployment for Grafana"
+    
+    # Enable canary deployment
+    nginx.ingress.kubernetes.io/canary: "true"
+    
+    # Weight-based canary (10% of traffic)
+    nginx.ingress.kubernetes.io/canary-weight: "10"
+    
+    # Header-based canary (optional)
+    # Route to canary if header "X-Canary: always" is present
+    # nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
+    # nginx.ingress.kubernetes.io/canary-by-header-value: "always"
+    
+    # Cookie-based canary (optional)
+    # Route to canary if cookie "canary=true" is present
+    # nginx.ingress.kubernetes.io/canary-by-cookie: "canary"
+spec:
+  ingressClassName: nginx
+  
+  tls:
+    - hosts:
+        - grafana.example.com
+      secretName: grafana-tls
+  
+  rules:
+    - host: grafana.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # Canary service (new version)
+                name: grafana-canary
+                port:
+                  number: 3000
+
+---
+# =============================================================================
+# Ingress: gRPC Backend
+# =============================================================================
+# Ingress configuration for gRPC services.
+# Requires HTTP/2 support and proper backend protocol configuration.
+#
+# Use Case: Exposing Tempo's OTLP gRPC endpoint externally
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tempo-grpc
+  namespace: monitoring
+  labels:
+    app: tempo
+    component: ingress-grpc
+  annotations:
+    description: "gRPC Ingress for Tempo OTLP endpoint"
+    
+    # Backend protocol for gRPC
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    
+    # SSL redirect (gRPC typically requires TLS)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # Proxy settings for gRPC
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    
+    # HTTP/2 configuration
+    nginx.ingress.kubernetes.io/http2-push-preload: "true"
+spec:
+  ingressClassName: nginx
+  
+  tls:
+    - hosts:
+        - tempo-grpc.example.com
+      secretName: tempo-grpc-tls
+  
+  rules:
+    - host: tempo-grpc.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: tempo
+                port:
+                  # OTLP gRPC port
+                  number: 4317
+
+---
+# =============================================================================
+# Ingress: Default Backend
+# =============================================================================
+# Default backend handles requests that don't match any Ingress rules.
+# Useful for custom error pages or catch-all routing.
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: default-backend
+  namespace: monitoring
+  labels:
+    app: default-backend
+    component: ingress
+  annotations:
+    description: "Default backend for unmatched requests"
+spec:
+  ingressClassName: nginx
+  
+  # Default backend for all unmatched requests
+  defaultBackend:
+    service:
+      name: default-http-backend
+      port:
+        number: 80
+  
+  # No rules - this catches everything not matched by other Ingresses
+  rules: []

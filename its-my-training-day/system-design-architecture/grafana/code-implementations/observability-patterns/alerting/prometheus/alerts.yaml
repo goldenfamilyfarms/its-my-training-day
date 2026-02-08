@@ -1,0 +1,436 @@
+# Prometheus Alerting Rules
+# =========================
+# This file contains comprehensive alerting rules demonstrating best practices
+# commonly discussed in Grafana observability architect interviews.
+#
+# Key Concepts Covered:
+# - SLO-based alerting with error budgets
+# - Multi-window burn rate alerts (Google SRE approach)
+# - USE method alerts for resource monitoring
+# - Recording rules for query efficiency
+#
+# Reference: https://sre.google/workbook/alerting-on-slos/
+
+# ============================================================================
+# RECORDING RULES
+# ============================================================================
+# Recording rules pre-compute frequently used or expensive expressions.
+# Benefits:
+# - Improved dashboard performance
+# - Consistent metric calculations across alerts and dashboards
+# - Reduced load on Prometheus during alert evaluation
+# ============================================================================
+
+groups:
+  # --------------------------------------------------------------------------
+  # Recording Rules for SLO Calculations
+  # --------------------------------------------------------------------------
+  - name: slo_recording_rules
+    interval: 30s
+    rules:
+      # Error Rate Recording Rules (multiple time windows)
+      - record: job:http_requests:error_rate_5m
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_requests_total[5m]))
+        labels:
+          window: "5m"
+
+      - record: job:http_requests:error_rate_30m
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[30m]))
+          /
+          sum by (job) (rate(http_requests_total[30m]))
+        labels:
+          window: "30m"
+
+      - record: job:http_requests:error_rate_1h
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[1h]))
+          /
+          sum by (job) (rate(http_requests_total[1h]))
+        labels:
+          window: "1h"
+
+      - record: job:http_requests:error_rate_6h
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[6h]))
+          /
+          sum by (job) (rate(http_requests_total[6h]))
+        labels:
+          window: "6h"
+
+      # Latency Percentile Recording Rules
+      - record: job:http_request_duration_seconds:p50_5m
+        expr: |
+          histogram_quantile(0.50,
+            sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
+          )
+
+      - record: job:http_request_duration_seconds:p90_5m
+        expr: |
+          histogram_quantile(0.90,
+            sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
+          )
+
+      - record: job:http_request_duration_seconds:p99_5m
+        expr: |
+          histogram_quantile(0.99,
+            sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
+          )
+
+      - record: job:http_request_duration_seconds:p999_5m
+        expr: |
+          histogram_quantile(0.999,
+            sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))
+          )
+
+      # Request Rate Recording Rules
+      - record: job:http_requests:rate_5m
+        expr: |
+          sum by (job) (rate(http_requests_total[5m]))
+
+      - record: job:http_requests:rate_1h
+        expr: |
+          sum by (job) (rate(http_requests_total[1h]))
+
+  # --------------------------------------------------------------------------
+  # SLO-Based Alerting Rules
+  # --------------------------------------------------------------------------
+  # These alerts are based on Service Level Objectives (SLOs) and error budgets.
+  # Using multi-window burn rate approach from Google SRE.
+  # --------------------------------------------------------------------------
+  - name: slo_alerts
+    rules:
+      # ======================================================================
+      # Availability SLO Alerts (99.9% target)
+      # ======================================================================
+      # Multi-window burn rate alert: Fast burn (2% budget in 1 hour)
+      - alert: SLOErrorBudgetFastBurn
+        expr: |
+          (
+            job:http_requests:error_rate_5m > (14.4 * 0.001)
+          )
+          and
+          (
+            job:http_requests:error_rate_1h > (14.4 * 0.001)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          slo: availability
+          burn_rate: fast
+        annotations:
+          summary: "High error rate burning SLO budget rapidly"
+          description: |
+            Service {{ $labels.job }} is experiencing high error rates.
+            5m error rate: {{ $value | humanizePercentage }}
+            At this rate, the monthly error budget will be exhausted in ~1 hour.
+          runbook_url: "https://runbooks.example.com/slo-error-budget"
+
+      # Multi-window burn rate alert: Slow burn (10% budget in 3 days)
+      - alert: SLOErrorBudgetSlowBurn
+        expr: |
+          (
+            job:http_requests:error_rate_30m > (1 * 0.001)
+          )
+          and
+          (
+            job:http_requests:error_rate_6h > (1 * 0.001)
+          )
+        for: 15m
+        labels:
+          severity: warning
+          slo: availability
+          burn_rate: slow
+        annotations:
+          summary: "Elevated error rate slowly consuming SLO budget"
+          description: |
+            Service {{ $labels.job }} has elevated error rates.
+            30m error rate: {{ $value | humanizePercentage }}
+            At this rate, the monthly error budget will be exhausted in ~3 days.
+          runbook_url: "https://runbooks.example.com/slo-error-budget"
+
+      # ======================================================================
+      # Latency SLO Alerts (p99 < 500ms target)
+      # ======================================================================
+      - alert: SLOLatencyBudgetBurn
+        expr: |
+          job:http_request_duration_seconds:p99_5m > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "p99 latency exceeds SLO target"
+          description: |
+            Service {{ $labels.job }} p99 latency is {{ $value | humanizeDuration }}.
+            SLO target: 500ms
+          runbook_url: "https://runbooks.example.com/slo-latency"
+
+      - alert: SLOLatencyCritical
+        expr: |
+          job:http_request_duration_seconds:p99_5m > 1.0
+        for: 2m
+        labels:
+          severity: critical
+          slo: latency
+        annotations:
+          summary: "p99 latency critically high"
+          description: |
+            Service {{ $labels.job }} p99 latency is {{ $value | humanizeDuration }}.
+            This is more than 2x the SLO target of 500ms.
+          runbook_url: "https://runbooks.example.com/slo-latency-critical"
+
+  # --------------------------------------------------------------------------
+  # USE Method Resource Alerts
+  # --------------------------------------------------------------------------
+  # USE: Utilization, Saturation, Errors for resource monitoring
+  # --------------------------------------------------------------------------
+  - name: resource_alerts
+    rules:
+      # ======================================================================
+      # CPU Alerts (Utilization)
+      # ======================================================================
+      - alert: HighCPUUtilization
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          resource: cpu
+          method: use
+        annotations:
+          summary: "High CPU utilization on {{ $labels.instance }}"
+          description: "CPU utilization is {{ $value | printf \"%.1f\" }}% (threshold: 80%)"
+          runbook_url: "https://runbooks.example.com/high-cpu"
+
+      - alert: CriticalCPUUtilization
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 5m
+        labels:
+          severity: critical
+          resource: cpu
+          method: use
+        annotations:
+          summary: "Critical CPU utilization on {{ $labels.instance }}"
+          description: "CPU utilization is {{ $value | printf \"%.1f\" }}% (threshold: 95%)"
+          runbook_url: "https://runbooks.example.com/critical-cpu"
+
+      # ======================================================================
+      # Memory Alerts (Saturation)
+      # ======================================================================
+      - alert: HighMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          /
+          node_memory_MemTotal_bytes * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          resource: memory
+          method: use
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% (threshold: 85%)"
+          runbook_url: "https://runbooks.example.com/high-memory"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          /
+          node_memory_MemTotal_bytes * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          resource: memory
+          method: use
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% (threshold: 95%)"
+          runbook_url: "https://runbooks.example.com/critical-memory"
+
+      # ======================================================================
+      # Disk Alerts (Utilization & Saturation)
+      # ======================================================================
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"}
+          /
+          node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 20
+        for: 15m
+        labels:
+          severity: warning
+          resource: disk
+          method: use
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: |
+            Filesystem {{ $labels.mountpoint }} has {{ $value | printf "%.1f" }}% free space.
+          runbook_url: "https://runbooks.example.com/low-disk"
+
+      - alert: DiskSpaceCritical
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"}
+          /
+          node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          resource: disk
+          method: use
+        annotations:
+          summary: "Critical disk space on {{ $labels.instance }}"
+          description: |
+            Filesystem {{ $labels.mountpoint }} has only {{ $value | printf "%.1f" }}% free space.
+          runbook_url: "https://runbooks.example.com/critical-disk"
+
+      # Disk I/O Saturation
+      - alert: HighDiskIOUtilization
+        expr: |
+          rate(node_disk_io_time_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          resource: disk_io
+          method: use
+        annotations:
+          summary: "High disk I/O on {{ $labels.instance }}"
+          description: "Disk {{ $labels.device }} I/O utilization is {{ $value | printf \"%.1f\" }}%"
+          runbook_url: "https://runbooks.example.com/high-disk-io"
+
+  # --------------------------------------------------------------------------
+  # Application-Specific Alerts
+  # --------------------------------------------------------------------------
+  - name: application_alerts
+    rules:
+      # ======================================================================
+      # Service Health Alerts
+      # ======================================================================
+      - alert: ServiceDown
+        expr: |
+          up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Instance {{ $labels.instance }} of {{ $labels.job }} has been down for more than 1 minute."
+          runbook_url: "https://runbooks.example.com/service-down"
+
+      - alert: TooManyRestarts
+        expr: |
+          changes(process_start_time_seconds[1h]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Service {{ $labels.job }} restarting frequently"
+          description: "Instance {{ $labels.instance }} has restarted {{ $value }} times in the last hour."
+          runbook_url: "https://runbooks.example.com/frequent-restarts"
+
+      # ======================================================================
+      # Request Rate Anomaly Alerts
+      # ======================================================================
+      - alert: TrafficSpike
+        expr: |
+          job:http_requests:rate_5m > 2 * job:http_requests:rate_1h
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Traffic spike detected for {{ $labels.job }}"
+          description: |
+            Current request rate ({{ $value | printf "%.1f" }} req/s) is more than 2x the hourly average.
+          runbook_url: "https://runbooks.example.com/traffic-spike"
+
+      - alert: TrafficDrop
+        expr: |
+          job:http_requests:rate_5m < 0.5 * job:http_requests:rate_1h
+          and
+          job:http_requests:rate_1h > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Traffic drop detected for {{ $labels.job }}"
+          description: |
+            Current request rate ({{ $value | printf "%.1f" }} req/s) is less than 50% of the hourly average.
+          runbook_url: "https://runbooks.example.com/traffic-drop"
+
+      # ======================================================================
+      # Goroutine and Connection Alerts (Go-specific)
+      # ======================================================================
+      - alert: HighGoroutineCount
+        expr: |
+          go_goroutines > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High goroutine count in {{ $labels.job }}"
+          description: "Instance {{ $labels.instance }} has {{ $value }} goroutines (threshold: 1000)"
+          runbook_url: "https://runbooks.example.com/high-goroutines"
+
+      - alert: GoroutineLeak
+        expr: |
+          rate(go_goroutines[1h]) > 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Possible goroutine leak in {{ $labels.job }}"
+          description: "Goroutine count is increasing at {{ $value | printf \"%.1f\" }} per second"
+          runbook_url: "https://runbooks.example.com/goroutine-leak"
+
+  # --------------------------------------------------------------------------
+  # Kubernetes-Specific Alerts
+  # --------------------------------------------------------------------------
+  - name: kubernetes_alerts
+    rules:
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 3
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+          description: "Pod has restarted {{ $value | printf \"%.0f\" }} times in the last 15 minutes"
+          runbook_url: "https://runbooks.example.com/pod-crashloop"
+
+      - alert: PodNotReady
+        expr: |
+          kube_pod_status_ready{condition="true"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} not ready"
+          description: "Pod has been in a non-ready state for more than 10 minutes"
+          runbook_url: "https://runbooks.example.com/pod-not-ready"
+
+      - alert: DeploymentReplicasMismatch
+        expr: |
+          kube_deployment_spec_replicas != kube_deployment_status_available_replicas
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} replica mismatch"
+          description: |
+            Deployment has {{ $value }} available replicas, expected {{ printf "kube_deployment_spec_replicas{namespace=\"%s\",deployment=\"%s\"}" $labels.namespace $labels.deployment }}
+          runbook_url: "https://runbooks.example.com/deployment-replicas"
+
+      - alert: PersistentVolumeClaimPending
+        expr: |
+          kube_persistentvolumeclaim_status_phase{phase="Pending"} == 1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} pending"
+          description: "PersistentVolumeClaim has been pending for more than 15 minutes"
+          runbook_url: "https://runbooks.example.com/pvc-pending"

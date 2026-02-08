@@ -1,0 +1,475 @@
+# Custom Resource Definition (CRD) Example
+# This CRD defines a GrafanaDashboard custom resource for managing Grafana dashboards
+# declaratively through Kubernetes. This pattern is commonly used in the Grafana Operator.
+#
+# The operator pattern allows you to:
+# - Define dashboards as Kubernetes resources
+# - Version control dashboard configurations
+# - Automatically sync dashboards to Grafana instances
+# - Manage dashboards across multiple environments
+#
+# Usage:
+#   kubectl apply -f crd-example.yaml
+#   kubectl get grafanadashboards
+#   kubectl describe grafanadashboard my-dashboard
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # Name must be in the format: <plural>.<group>
+  name: grafanadashboards.observability.grafana.com
+  annotations:
+    # Controller-gen annotations for documentation
+    controller-gen.kubebuilder.io/version: v0.14.0
+  labels:
+    app.kubernetes.io/name: grafana-operator
+    app.kubernetes.io/part-of: observability-stack
+spec:
+  # Group is the API group for this resource
+  group: observability.grafana.com
+  
+  # Names define how to refer to this resource
+  names:
+    # Kind is the CamelCase singular type (used in YAML)
+    kind: GrafanaDashboard
+    # ListKind is the CamelCase list type
+    listKind: GrafanaDashboardList
+    # Plural is the lowercase plural (used in URLs)
+    plural: grafanadashboards
+    # Singular is the lowercase singular
+    singular: grafanadashboard
+    # ShortNames allow abbreviated references (e.g., kubectl get gdb)
+    shortNames:
+      - gdb
+      - gdash
+    # Categories group resources together (e.g., kubectl get all)
+    categories:
+      - observability
+      - grafana
+  
+  # Scope determines if resources are namespaced or cluster-wide
+  scope: Namespaced
+  
+  # Versions define the API versions for this resource
+  versions:
+    - name: v1alpha1
+      # Served indicates if this version is enabled
+      served: true
+      # Storage indicates if this version is used for persistence
+      storage: true
+      
+      # Subresources enable additional API endpoints
+      subresources:
+        # Status subresource enables /status endpoint for status updates
+        # This allows the controller to update status without triggering
+        # a full resource update (important for reconciliation loops)
+        status: {}
+      
+      # AdditionalPrinterColumns define what kubectl shows in table output
+      # These columns appear when running: kubectl get grafanadashboards
+      additionalPrinterColumns:
+        - name: Title
+          type: string
+          description: The title of the dashboard
+          jsonPath: .spec.title
+        - name: Folder
+          type: string
+          description: The folder where the dashboard is stored
+          jsonPath: .spec.folder
+        - name: Instance
+          type: string
+          description: The Grafana instance this dashboard belongs to
+          jsonPath: .spec.instanceSelector.matchLabels.app
+        - name: Synced
+          type: string
+          description: Whether the dashboard is synced to Grafana
+          jsonPath: .status.conditions[?(@.type=="Synced")].status
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      
+      # Schema defines the structure and validation for the resource
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: |
+            GrafanaDashboard is the Schema for the grafanadashboards API.
+            It represents a Grafana dashboard that should be managed by the operator.
+          required:
+            - spec
+          properties:
+            apiVersion:
+              type: string
+              description: API version of the resource
+            kind:
+              type: string
+              description: Kind of the resource
+            metadata:
+              type: object
+              description: Standard Kubernetes metadata
+            
+            # Spec defines the desired state of the dashboard
+            spec:
+              type: object
+              description: GrafanaDashboardSpec defines the desired state of GrafanaDashboard
+              required:
+                - instanceSelector
+              properties:
+                # Title of the dashboard
+                title:
+                  type: string
+                  description: The title of the dashboard displayed in Grafana
+                  minLength: 1
+                  maxLength: 255
+                
+                # Folder organization
+                folder:
+                  type: string
+                  description: |
+                    The folder where the dashboard should be stored in Grafana.
+                    If not specified, the dashboard will be placed in the General folder.
+                  default: "General"
+                
+                # Dashboard JSON model - the actual dashboard definition
+                json:
+                  type: string
+                  description: |
+                    The complete dashboard JSON model. This is the same JSON you would
+                    export from Grafana's dashboard settings. Can be provided inline or
+                    referenced from a ConfigMap.
+                
+                # Reference to external JSON source
+                jsonDataFrom:
+                  type: object
+                  description: Reference to a ConfigMap containing the dashboard JSON
+                  properties:
+                    configMapKeyRef:
+                      type: object
+                      description: Reference to a key in a ConfigMap
+                      required:
+                        - name
+                        - key
+                      properties:
+                        name:
+                          type: string
+                          description: Name of the ConfigMap
+                        key:
+                          type: string
+                          description: Key within the ConfigMap containing the JSON
+                        namespace:
+                          type: string
+                          description: |
+                            Namespace of the ConfigMap. If not specified,
+                            uses the same namespace as the GrafanaDashboard resource.
+                
+                # URL to fetch dashboard JSON from
+                url:
+                  type: string
+                  description: |
+                    URL to fetch the dashboard JSON from. Useful for referencing
+                    dashboards from Grafana's dashboard repository or other sources.
+                  pattern: "^https?://"
+                
+                # Grafana.com dashboard ID for importing community dashboards
+                grafanaCom:
+                  type: object
+                  description: Reference to a dashboard on grafana.com
+                  properties:
+                    id:
+                      type: integer
+                      description: The dashboard ID from grafana.com
+                      minimum: 1
+                    revision:
+                      type: integer
+                      description: The specific revision to use (latest if not specified)
+                      minimum: 1
+                
+                # Data source variable mappings
+                datasources:
+                  type: array
+                  description: |
+                    Mappings for data source variables in the dashboard.
+                    Use this to replace data source references with actual data source names.
+                  items:
+                    type: object
+                    required:
+                      - inputName
+                      - datasourceName
+                    properties:
+                      inputName:
+                        type: string
+                        description: The variable name in the dashboard JSON (e.g., "DS_PROMETHEUS")
+                      datasourceName:
+                        type: string
+                        description: The actual data source name in Grafana
+                
+                # Instance selector to target specific Grafana instances
+                instanceSelector:
+                  type: object
+                  description: |
+                    Label selector to identify which Grafana instance(s) should
+                    receive this dashboard. Matches against Grafana CR labels.
+                  properties:
+                    matchLabels:
+                      type: object
+                      description: Labels that must match the Grafana instance
+                      additionalProperties:
+                        type: string
+                    matchExpressions:
+                      type: array
+                      description: Label selector expressions
+                      items:
+                        type: object
+                        required:
+                          - key
+                          - operator
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                            enum: [In, NotIn, Exists, DoesNotExist]
+                          values:
+                            type: array
+                            items:
+                              type: string
+                
+                # Plugins required by this dashboard
+                plugins:
+                  type: array
+                  description: List of Grafana plugins required by this dashboard
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - version
+                    properties:
+                      name:
+                        type: string
+                        description: Plugin ID (e.g., "grafana-piechart-panel")
+                      version:
+                        type: string
+                        description: Plugin version
+                
+                # Resync period for periodic reconciliation
+                resyncPeriod:
+                  type: string
+                  description: |
+                    How often to resync the dashboard with Grafana.
+                    Format: duration string (e.g., "5m", "1h")
+                  default: "5m"
+                  pattern: "^[0-9]+(s|m|h)$"
+                
+                # Allow updates from Grafana UI
+                allowCrossNamespaceImport:
+                  type: boolean
+                  description: |
+                    Allow importing ConfigMaps from other namespaces.
+                    Requires appropriate RBAC permissions.
+                  default: false
+            
+            # Status reflects the observed state of the dashboard
+            status:
+              type: object
+              description: GrafanaDashboardStatus defines the observed state of GrafanaDashboard
+              properties:
+                # Unique identifier assigned by Grafana
+                uid:
+                  type: string
+                  description: The UID assigned to this dashboard by Grafana
+                
+                # Dashboard URL in Grafana
+                url:
+                  type: string
+                  description: The URL to access this dashboard in Grafana
+                
+                # Content hash for change detection
+                contentHash:
+                  type: string
+                  description: |
+                    Hash of the dashboard content. Used to detect changes
+                    and avoid unnecessary updates.
+                
+                # Last sync timestamp
+                lastSyncTime:
+                  type: string
+                  format: date-time
+                  description: Timestamp of the last successful sync to Grafana
+                
+                # Sync error message
+                syncError:
+                  type: string
+                  description: Error message if the last sync failed
+                
+                # Standard Kubernetes conditions
+                conditions:
+                  type: array
+                  description: |
+                    Conditions represent the latest available observations
+                    of the dashboard's current state.
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - status
+                      - lastTransitionTime
+                      - reason
+                      - message
+                    properties:
+                      type:
+                        type: string
+                        description: |
+                          Type of condition. Common types:
+                          - Synced: Dashboard is synced to Grafana
+                          - Ready: Dashboard is ready for use
+                          - Error: An error occurred
+                      status:
+                        type: string
+                        description: Status of the condition (True, False, Unknown)
+                        enum: [True, False, Unknown]
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                        description: Last time the condition transitioned
+                      reason:
+                        type: string
+                        description: Machine-readable reason for the condition
+                      message:
+                        type: string
+                        description: Human-readable message about the condition
+                
+                # Observed generation for tracking spec changes
+                observedGeneration:
+                  type: integer
+                  format: int64
+                  description: |
+                    The generation observed by the controller.
+                    Used to determine if the controller has processed the latest spec.
+
+---
+# Example GrafanaDashboard Custom Resource
+# This shows how to use the CRD defined above
+apiVersion: observability.grafana.com/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: kubernetes-cluster-monitoring
+  namespace: monitoring
+  labels:
+    app: grafana
+    dashboard-type: infrastructure
+spec:
+  title: "Kubernetes Cluster Monitoring"
+  folder: "Infrastructure"
+  
+  # Target Grafana instance by label
+  instanceSelector:
+    matchLabels:
+      app: grafana
+      environment: production
+  
+  # Data source mappings
+  datasources:
+    - inputName: "DS_PROMETHEUS"
+      datasourceName: "Prometheus"
+    - inputName: "DS_LOKI"
+      datasourceName: "Loki"
+  
+  # Required plugins
+  plugins:
+    - name: grafana-piechart-panel
+      version: "1.6.2"
+  
+  # Dashboard JSON (simplified example)
+  json: |
+    {
+      "title": "Kubernetes Cluster Monitoring",
+      "uid": "k8s-cluster",
+      "tags": ["kubernetes", "infrastructure"],
+      "timezone": "browser",
+      "schemaVersion": 38,
+      "version": 1,
+      "panels": [
+        {
+          "id": 1,
+          "title": "CPU Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace!=\"\"}[5m])) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Memory Usage",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes{namespace!=\"\"}) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        }
+      ]
+    }
+  
+  # Resync every 10 minutes
+  resyncPeriod: "10m"
+
+---
+# Example using ConfigMap reference for dashboard JSON
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-exporter-dashboard
+  namespace: monitoring
+data:
+  dashboard.json: |
+    {
+      "title": "Node Exporter Full",
+      "uid": "node-exporter",
+      "tags": ["node", "prometheus"],
+      "panels": []
+    }
+
+---
+apiVersion: observability.grafana.com/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: node-exporter-dashboard
+  namespace: monitoring
+spec:
+  title: "Node Exporter Full"
+  folder: "Infrastructure"
+  instanceSelector:
+    matchLabels:
+      app: grafana
+  jsonDataFrom:
+    configMapKeyRef:
+      name: node-exporter-dashboard
+      key: dashboard.json
+
+---
+# Example importing from grafana.com
+apiVersion: observability.grafana.com/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: loki-dashboard
+  namespace: monitoring
+spec:
+  title: "Loki Logs Dashboard"
+  folder: "Logging"
+  instanceSelector:
+    matchLabels:
+      app: grafana
+  # Import dashboard ID 13639 from grafana.com
+  grafanaCom:
+    id: 13639
+    revision: 2
+  datasources:
+    - inputName: "DS_LOKI"
+      datasourceName: "Loki"
