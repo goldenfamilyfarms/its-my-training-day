@@ -14,14 +14,64 @@ Cloud architecture patterns and solutions design topics for building scalable, r
 
 | Topic | Study Guide | Difficulty | Est. Time |
 |-------|-------------|------------|-----------|
-| Cloud Design Patterns | Coming soon | Intermediate | 60 min |
-| Multi-Region Architecture | Coming soon | Advanced | 90 min |
-| Disaster Recovery Strategies | Coming soon | Advanced | 60 min |
-| Cost Optimization | Coming soon | Intermediate | 45 min |
-| Security Architecture | Coming soon | Advanced | 60 min |
-| Serverless Patterns | Coming soon | Intermediate | 60 min |
-| Data Architecture | Coming soon | Advanced | 60 min |
-| Migration Strategies | Coming soon | Advanced | 45 min |
+| Cloud Design Patterns | [Study guide](study-guides/01-cloud-design-patterns.md) | Intermediate | 60 min |
+| Multi-Region Architecture | [Study guide](study-guides/02-multi-region-architecture.md) | Advanced | 90 min |
+| Disaster Recovery Strategies | [Study guide](study-guides/03-disaster-recovery-strategies.md) | Advanced | 60 min |
+| Cost Optimization | [Study guide](study-guides/04-cost-optimization.md) | Intermediate | 45 min |
+| Security Architecture | [Study guide](study-guides/05-security-architecture.md) | Advanced | 60 min |
+| Serverless Patterns | [Study guide](study-guides/06-serverless-patterns.md) | Intermediate | 60 min |
+| Data Architecture | [Study guide](study-guides/07-data-architecture.md) | Advanced | 60 min |
+| Migration Strategies | [Study guide](study-guides/08-migration-strategies.md) | Advanced | 45 min |
+
+## What you’ll learn (by topic)
+
+### Cloud Design Patterns
+- Core pattern families (resilience, scalability, integrity, operability, security)
+- How to choose sync vs async and managed vs self-hosted trade-offs
+- Failure modes (retry storms, hot partitions) and mitigations
+- Deep dive: `study-guides/01-cloud-design-patterns.md`
+
+### Multi-Region Architecture
+- Active-active vs active-passive designs and traffic management
+- Data replication trade-offs (consistency, latency, failover)
+- Operational concerns (health checks, DNS/GSLB, failover drills)
+- Deep dive: `study-guides/02-multi-region-architecture.md`
+
+### Disaster Recovery Strategies
+- RTO/RPO definitions and choosing DR tiers (backup/restore to hot standby)
+- Runbooks and game days for failover and recovery
+- Designing for partial-region failures and dependency outages
+- Deep dive: `study-guides/03-disaster-recovery-strategies.md`
+
+### Cost Optimization
+- Biggest cost levers (compute, storage, egress, managed services)
+- Right-sizing, autoscaling, and commitment discounts
+- FinOps basics: tagging, allocation, and cost guardrails
+- Deep dive: `study-guides/04-cost-optimization.md`
+
+### Security Architecture
+- Defense-in-depth, least privilege, and secure network boundaries
+- Identity-first design (authn/authz), secrets, and auditability
+- Threat modeling and secure-by-default service design
+- Deep dive: `study-guides/05-security-architecture.md`
+
+### Serverless Patterns
+- Event-driven designs, queues/streams, and idempotency
+- Concurrency limits, cold starts, and operational visibility
+- Cost/perf trade-offs and when not to use serverless
+- Deep dive: `study-guides/06-serverless-patterns.md`
+
+### Data Architecture
+- OLTP vs OLAP, lakes vs warehouses, and pipeline patterns
+- Governance basics (quality, lineage, access controls)
+- Reliability concerns (backfills, late data, exactly-once at business layer)
+- Deep dive: `study-guides/07-data-architecture.md`
+
+### Migration Strategies
+- 6R framework (rehost, refactor, replatform, retire, retain, replace)
+- Strangler, parallel runs, cutover planning, and rollback
+- Risk management: data migration, performance, and org change
+- Deep dive: `study-guides/08-migration-strategies.md`
 
 ## Recommended Study Order
 
@@ -38,23 +88,23 @@ Cloud architecture patterns and solutions design topics for building scalable, r
 
 ```mermaid
 graph TB
-    subgraph "Global Layer"
-        DNS[Route 53 / Cloud DNS]
-        CDN[CloudFront / Cloud CDN]
+    subgraph Global_Layer
+        DNS["Route 53 / Cloud DNS"]
+        CDN["CloudFront / Cloud CDN"]
     end
-    
-    subgraph "Region A - Primary"
-        LBA[Load Balancer]
-        SVCA[Services]
-        DBA[(Primary DB)]
+
+    subgraph Region_A_Primary
+        LBA["Load Balancer"]
+        SVCA["Services"]
+        DBA["Primary DB"]
     end
-    
-    subgraph "Region B - Secondary"
-        LBB[Load Balancer]
-        SVCB[Services]
-        DBB[(Replica DB)]
+
+    subgraph Region_B_Secondary
+        LBB["Load Balancer"]
+        SVCB["Services"]
+        DBB["Replica DB"]
     end
-    
+
     DNS --> CDN
     CDN --> LBA
     CDN --> LBB
