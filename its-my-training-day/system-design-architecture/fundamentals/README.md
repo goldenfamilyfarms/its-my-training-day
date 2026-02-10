@@ -1,81 +1,40 @@
-# Fundamentals - Concept Guide
+# Fundamentals
 
-## Overview
+Core concepts that form the foundation of system design. Study these first -- everything in the intermediate and advanced sections builds on this material.
 
-Core distributed systems concepts that form the foundation of system design interviews. These topics test your understanding of how large-scale systems work, the trade-offs involved, and your ability to reason about complex distributed scenarios.
+## Study Guides
 
-## Prerequisites
-
-- Basic understanding of client-server architecture
-- Familiarity with databases and caching concepts
-- Knowledge of HTTP and networking basics
-
-## Topics Covered
-
-| Topic | Study Guide | Difficulty | Est. Time |
-|-------|-------------|------------|-----------|
-| CAP Theorem | [cap-theorem-study-guide.md](./cap-theorem-study-guide.md) | Intermediate | 60 min |
-| Consistency Models | Coming soon | Advanced | 60 min |
-| Scalability Patterns | Coming soon | Intermediate | 90 min |
-| Load Balancing | Coming soon | Intermediate | 45 min |
-| Caching Strategies | Coming soon | Intermediate | 60 min |
-| Database Sharding | Coming soon | Advanced | 60 min |
-| Replication Patterns | Coming soon | Advanced | 45 min |
-| Consensus Algorithms | Coming soon | Advanced | 90 min |
-| Event-Driven Architecture | Coming soon | Intermediate | 60 min |
-| Microservices vs Monolith | Coming soon | Intermediate | 45 min |
+| # | Topic | Domain | Est. Time |
+|---|-------|--------|-----------|
+| 01 | [CAP Theorem](./01-cap-theorem.md) | Distributed Systems | 60 min |
+| 02 | [Three Pillars of Observability](./02-three-pillars-of-observability.md) | Observability | 45 min |
+| 03 | [Cloud Design Patterns](./03-cloud-design-patterns.md) | Solutions Architecture | 60 min |
+| 04 | [CI/CD Pipeline Design](./04-ci-cd-pipeline-design.md) | DevOps | 60 min |
+| 05 | [Infrastructure as Code](./05-infrastructure-as-code.md) | DevOps | 60 min |
+| 06 | [Container Orchestration](./06-container-orchestration.md) | DevOps | 60 min |
+| 07 | [SLIs, SLOs, and SLAs](./07-slis-slos-and-slas.md) | Observability | 45 min |
+| 08 | [Secret Management](./08-secret-management.md) | DevOps | 30 min |
 
 ## Recommended Study Order
 
-1. **CAP Theorem** - Foundation for understanding distributed trade-offs
-2. **Consistency Models** - Deep dive into consistency guarantees
-3. **Scalability Patterns** - Horizontal vs vertical, stateless design
-4. **Load Balancing** - Traffic distribution strategies
-5. **Caching Strategies** - Performance optimization patterns
-6. **Database Sharding** - Data partitioning approaches
-7. **Replication Patterns** - High availability strategies
-8. **Event-Driven Architecture** - Async communication patterns
-9. **Microservices vs Monolith** - Architecture decision framework
-10. **Consensus Algorithms** - Paxos, Raft, and coordination
+1. **CAP Theorem** -- Distributed trade-offs every system design answer relies on
+2. **Three Pillars of Observability** -- Metrics, logs, and traces vocabulary
+3. **SLIs, SLOs, and SLAs** -- How to define "healthy" for any service
+4. **Cloud Design Patterns** -- Resilience, scalability, and operability patterns
+5. **CI/CD Pipeline Design** -- Build-once, promote-through-environments pipelines
+6. **Infrastructure as Code** -- Declarative infra workflows and state management
+7. **Container Orchestration** -- Kubernetes primitives and scaling behavior
+8. **Secret Management** -- Storing, rotating, and accessing secrets safely
 
-## Key Concepts Diagram
+## What You'll Learn
 
-```mermaid
-graph LR
-    subgraph "CAP Theorem Trade-offs"
-        C[Consistency]
-        A[Availability]
-        P[Partition Tolerance]
-        C --- A
-        A --- P
-        P --- C
-    end
-    
-    subgraph "System Properties"
-        CP[CP Systems<br/>MongoDB, HBase]
-        AP[AP Systems<br/>Cassandra, DynamoDB]
-        CA[CA Systems<br/>Traditional RDBMS]
-    end
-    
-    C --> CP
-    C --> CA
-    A --> AP
-    A --> CA
-    P --> CP
-    P --> AP
-```
+- How CAP theorem trade-offs inform database and replication choices
+- The three observability pillars and how they correlate via trace IDs
+- SLI/SLO/SLA definitions, error budgets, and burn-rate alerting
+- Core cloud pattern families (resilience, scalability, security)
+- CI vs CD stages, immutable artifacts, gates, and rollback
+- Declarative infra with plan/apply, drift detection, and policy-as-code
+- Kubernetes pods, deployments, services, probes, and autoscaling
+- Secrets lifecycle: storage, rotation, least-privilege, leak prevention
 
-## Interview Relevance
-
-Fundamentals questions appear in every system design interview:
-- **CAP Theorem**: "What trade-offs would you make for a banking system vs social media feed?"
-- **Consistency**: "How would you ensure data consistency across services?"
-- **Scalability**: "How would you scale this system to 10x traffic?"
-- **Caching**: "Where would you add caching and what invalidation strategy?"
-
-Interviewers use these topics to gauge:
-- Understanding of distributed systems trade-offs
-- Ability to reason about failure scenarios
-- Knowledge of industry-standard patterns and solutions
-
-## Total Estimated Time: 10 hours
+## Total Estimated Time: ~7 hours
